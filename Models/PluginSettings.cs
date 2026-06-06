@@ -60,6 +60,19 @@ public class PluginSettings
 
     // 天气问候
     public bool WeatherGreetingEnabled { get; set; } = true;
+    public Dictionary<string, string> WeatherGreetings { get; set; } = new()
+    {
+        ["雨"] = "下雨记得带伞 ☔",
+        ["雪"] = "下雪了，注意保暖 ❄️",
+        ["晴"] = "天气不错，保持好心情 ☀️",
+        ["阴"] = "阴天适合专注学习 📖",
+        ["雾"] = "雾大注意安全 🌫️",
+        ["霾"] = "霾天减少户外活动 😷",
+        ["风"] = "大风天注意安全 🍃",
+        ["雷"] = "雷电天气注意安全 ⚡",
+        ["云"] = "多云天气，舒适宜人 ⛅",
+        ["默认"] = "今日天气：{weather}"
+    };
 }
 
 public class CustomHoliday

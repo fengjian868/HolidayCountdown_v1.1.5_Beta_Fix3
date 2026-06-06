@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -9,7 +10,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.weather", "天气问候设置", "\uE9CA", "\uE9CA")]
+[SettingsPageInfo("holidaycountdown.weather", "天气问候设置", "\uE753", "\uE753")]
 public class WeatherSettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;
@@ -23,9 +24,62 @@ public class WeatherSettingsPage : SettingsPageBase
         {
             p.Children.Add(Row("启用天气问候", "根据ClassIsland天气显示问候语", Toggle(_svc.Settings.WeatherGreetingEnabled, v => _svc.Settings.WeatherGreetingEnabled = v)));
         })));
+        s.Children.Add(Expander("问候语文案", BuildGreetingPanel()));
         s.Children.Add(new TextBlock { Text = "天气数据来自ClassIsland内置天气服务，插件会自动读取当前天气并匹配对应的问候语。", Opacity = 0.5, FontSize = 11, TextWrapping = TextWrapping.Wrap });
         s.Children.Add(SaveBtn());
         return new ScrollViewer { Content = s };
+    }
+
+    StackPanel BuildGreetingPanel()
+    {
+        var panel = new StackPanel { Spacing = 8 };
+        var listPanel = new StackPanel { Spacing = 6 };
+
+        void RefreshList()
+        {
+            listPanel.Children.Clear();
+            foreach (var kv in _svc.Settings.WeatherGreetings)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                var keyBox = new TextBox { Text = kv.Key, Width = 80, IsReadOnly = kv.Key == "默认" };
+                keyBox.LostFocus += (a, b) =>
+                {
+                    if (kv.Key == "默认") return;
+                    var newKey = keyBox.Text ?? "";
+                    if (newKey != kv.Key && !string.IsNullOrEmpty(newKey) && !_svc.Settings.WeatherGreetings.ContainsKey(newKey))
+                    {
+                        _svc.Settings.WeatherGreetings.Remove(kv.Key);
+                        _svc.Settings.WeatherGreetings[newKey] = kv.Value;
+                    }
+                };
+                var textBox = new TextBox { Text = kv.Value, Width = 250 };
+                textBox.LostFocus += (a, b) => _svc.Settings.WeatherGreetings[kv.Key] = textBox.Text ?? "";
+                var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2), IsVisible = kv.Key != "默认" };
+                delBtn.Click += (a, e) => { _svc.Settings.WeatherGreetings.Remove(kv.Key); RefreshList(); };
+
+                row.Children.Add(new TextBlock { Text = "关键词", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
+                row.Children.Add(keyBox);
+                row.Children.Add(new TextBlock { Text = "文案", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
+                row.Children.Add(textBox);
+                row.Children.Add(delBtn);
+                listPanel.Children.Add(row);
+            }
+        }
+
+        RefreshList();
+        panel.Children.Add(listPanel);
+
+        var addBtn = new Button { Content = "+ 添加天气问候", Padding = new Thickness(12, 4), HorizontalAlignment = HorizontalAlignment.Left };
+        addBtn.Click += (a, e) =>
+        {
+            _svc.Settings.WeatherGreetings["新天气"] = "";
+            RefreshList();
+        };
+        panel.Children.Add(addBtn);
+
+        panel.Children.Add(new TextBlock { Text = "说明：当天气文本包含对应关键词时，显示该文案。{weather} 会被替换为实际天气名称。", Opacity = 0.5, FontSize = 11, TextWrapping = TextWrapping.Wrap });
+
+        return panel;
     }
 
     static TextBlock Header(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };
