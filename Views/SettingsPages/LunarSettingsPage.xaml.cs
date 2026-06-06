@@ -9,7 +9,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.lunar", "农历设置", "Calendar", "Calendar")]
+[SettingsPageInfo("holidaycountdown.lunar", "农历设置", "\uE787", "\uE787")]
 public class LunarSettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;

@@ -7,7 +7,7 @@ using ClassIsland.Core.Abstractions.Controls;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.about", "关于", "Information", "Information")]
+[SettingsPageInfo("holidaycountdown.about", "关于", "\uE946", "\uE946")]
 public class AboutSettingsPage : SettingsPageBase
 {
     public AboutSettingsPage() { Content = Build(); }

@@ -13,7 +13,7 @@ namespace HolidayCountdown.Views.Components;
 [ComponentInfo(
     "A7B8C9D0-E1F2-3456-0123-123456789016",
     "天气问候",
-    "\uE9D2",
+    "\uE753",
     "根据ClassIsland天气显示问候语和预警提醒"
 )]
 public class WeatherGreetingComponent : ComponentBase

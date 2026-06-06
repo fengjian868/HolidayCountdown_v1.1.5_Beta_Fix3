@@ -11,7 +11,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.customholiday", "自定义节日", "Gift", "Gift")]
+[SettingsPageInfo("holidaycountdown.customholiday", "自定义节日", "\uE915", "\uE915")]
 public class CustomHolidaySettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;

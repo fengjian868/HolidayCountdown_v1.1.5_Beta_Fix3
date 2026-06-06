@@ -11,7 +11,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.greeting", "问候语设置", "MessageText", "MessageText")]
+[SettingsPageInfo("holidaycountdown.greeting", "问候语设置", "\uE9D2", "\uE9D2")]
 public class GreetingSettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;

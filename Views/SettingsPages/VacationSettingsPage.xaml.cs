@@ -9,7 +9,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.vacation", "寒暑假设置", "School", "School")]
+[SettingsPageInfo("holidaycountdown.vacation", "寒暑假设置", "\uE7BE", "\uE7BE")]
 public class VacationSettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;

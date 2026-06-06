@@ -16,7 +16,7 @@ namespace HolidayCountdown.Views.Components;
 [ComponentInfo(
     "C3D4E5F6-A7B8-9012-CDEF-123456789012",
     "24节气倒计时",
-    "\uE8F5",
+    "\uE9CA",
     "显示距离下一个24节气的剩余天数，带弧形进度环，有网络时自动刷新"
 )]
 public class SolarTermComponent : ComponentBase

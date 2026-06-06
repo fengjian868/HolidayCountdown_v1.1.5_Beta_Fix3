@@ -10,7 +10,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.solarterm", "24节气设置", "CalendarMonth", "CalendarMonth")]
+[SettingsPageInfo("holidaycountdown.solarterm", "24节气设置", "\uE9CA", "\uE9CA")]
 public class SolarTermSettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;

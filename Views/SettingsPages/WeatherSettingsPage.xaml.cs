@@ -9,7 +9,7 @@ using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
 
-[SettingsPageInfo("holidaycountdown.weather", "天气问候设置", "WeatherPartlyCloudy", "WeatherPartlyCloudy")]
+[SettingsPageInfo("holidaycountdown.weather", "天气问候设置", "\uE9CA", "\uE9CA")]
 public class WeatherSettingsPage : SettingsPageBase
 {
     private readonly HolidayService _svc;
