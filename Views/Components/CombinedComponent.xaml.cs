@@ -163,9 +163,8 @@ public class CombinedComponent : ComponentBase
 
     Control CreateArcRing(int days, Holiday? prev, Holiday next, Color color)
     {
-        var grid = new Grid { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        var vb = new Viewbox { Stretch = Stretch.Uniform, Width = 36, Height = 36 };
-        var inner = new Grid { Width = 36, Height = 36 };
+        var vb = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.Both };
+        var inner = new Grid { Width = 36, Height = 36, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
 
         // 背景弧
         inner.Children.Add(new Arc
@@ -208,7 +207,6 @@ public class CombinedComponent : ComponentBase
         });
 
         vb.Child = inner;
-        grid.Children.Add(vb);
-        return grid;
+        return vb;
     }
 }

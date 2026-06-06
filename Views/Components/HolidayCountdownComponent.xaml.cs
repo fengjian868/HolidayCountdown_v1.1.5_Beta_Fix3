@@ -80,10 +80,9 @@ public class HolidayCountdownComponent : ComponentBase
 
     Control CreateArc(int days, Holiday? prev, Holiday next, Color color)
     {
-        var grid = new Grid { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
-        // 使用 Viewbox 让弧形进度环随容器自动缩放
-        var vb = new Viewbox { Stretch = Stretch.Uniform, Width = 36, Height = 36 };
-        var inner = new Grid { Width = 36, Height = 36 };
+        // 使用 Viewbox 包裹整个进度环，让它随父容器自动缩放
+        var vb = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.Both };
+        var inner = new Grid { Width = 36, Height = 36, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         inner.Children.Add(new Arc { Width = 36, Height = 36, StartAngle = -90, SweepAngle = 360, Stroke = new SolidColorBrush(Color.Parse("#20FFFFFF")), StrokeThickness = 3, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center });
         double p = 0;
         if (prev != null) { var t = (next.Date - prev.Date).TotalDays; var pass = (DateTime.Now - prev.Date).TotalDays; p = Math.Max(0, Math.Min(1, pass / t)); }
@@ -91,7 +90,6 @@ public class HolidayCountdownComponent : ComponentBase
         inner.Children.Add(new Arc { Width = 36, Height = 36, StartAngle = -90, SweepAngle = p * 360, Stroke = new SolidColorBrush(color), StrokeThickness = 3, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center });
         inner.Children.Add(new TextBlock { Text = days > 0 ? days.ToString() : "!", FontSize = 10, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(color), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center });
         vb.Child = inner;
-        grid.Children.Add(vb);
-        return grid;
+        return vb;
     }
 }
