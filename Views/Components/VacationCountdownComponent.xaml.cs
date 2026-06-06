@@ -25,7 +25,7 @@ public class VacationCountdownComponent : ComponentBase
 
     public VacationCountdownComponent()
     {
-        _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 3, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+        _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         Content = _main;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromHours(1) }; _timer.Tick += (s, e) => Update(); _timer.Start();
         Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); Update(); });
@@ -65,14 +65,16 @@ public class VacationCountdownComponent : ComponentBase
                     HorizontalAlignment = HorizontalAlignment.Center, 
                     Foreground = new SolidColorBrush(Color.Parse("#4CAF50")),
                     FontWeight = FontWeight.SemiBold,
-                    Margin = new Thickness(0, 2, 0, 2)
+                    FontSize = 12,
+                    Margin = new Thickness(0, 1, 0, 0)
                 });
                 _main.Children.Add(new TextBlock 
                 { 
                     Text = $"剩余 {weeks} 周 {days} 天", 
                     HorizontalAlignment = HorizontalAlignment.Center, 
                     Foreground = new SolidColorBrush(Color.Parse("#4CAF50")),
-                    Margin = new Thickness(0, 2, 0, 2)
+                    FontSize = 12,
+                    Margin = new Thickness(0, 0, 0, 1)
                 });
             }
             else
@@ -83,14 +85,16 @@ public class VacationCountdownComponent : ComponentBase
                     HorizontalAlignment = HorizontalAlignment.Center, 
                     Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
                     FontWeight = FontWeight.SemiBold,
-                    Margin = new Thickness(0, 2, 0, 2)
+                    FontSize = 12,
+                    Margin = new Thickness(0, 1, 0, 0)
                 });
                 _main.Children.Add(new TextBlock 
                 { 
                     Text = $"{weeks} 周 {days} 天", 
                     HorizontalAlignment = HorizontalAlignment.Center, 
                     Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
-                    Margin = new Thickness(0, 2, 0, 2)
+                    FontSize = 12,
+                    Margin = new Thickness(0, 0, 0, 1)
                 });
             }
         }

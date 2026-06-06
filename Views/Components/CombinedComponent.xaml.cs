@@ -163,13 +163,14 @@ public class CombinedComponent : ComponentBase
 
     Control CreateArcRing(int days, Holiday? prev, Holiday next, Color color)
     {
-        var size = 36.0;
-        var grid = new Grid { Width = size, Height = size, VerticalAlignment = VerticalAlignment.Center };
+        var grid = new Grid { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+        var vb = new Viewbox { Stretch = Stretch.Uniform, Width = 36, Height = 36 };
+        var inner = new Grid { Width = 36, Height = 36 };
 
         // 背景弧
-        grid.Children.Add(new Arc
+        inner.Children.Add(new Arc
         {
-            Width = size, Height = size,
+            Width = 36, Height = 36,
             StartAngle = -90, SweepAngle = 360,
             Stroke = new SolidColorBrush(Color.Parse("#20FFFFFF")),
             StrokeThickness = 3,
@@ -187,9 +188,9 @@ public class CombinedComponent : ComponentBase
         }
         else progress = Math.Max(0, Math.Min(1, 1 - days / 30.0));
 
-        grid.Children.Add(new Arc
+        inner.Children.Add(new Arc
         {
-            Width = size, Height = size,
+            Width = 36, Height = 36,
             StartAngle = -90, SweepAngle = progress * 360,
             Stroke = new SolidColorBrush(color),
             StrokeThickness = 3,
@@ -197,7 +198,7 @@ public class CombinedComponent : ComponentBase
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
-        grid.Children.Add(new TextBlock
+        inner.Children.Add(new TextBlock
         {
             Text = days > 0 ? days.ToString() : "!",
             FontSize = 10, FontWeight = FontWeight.Bold,
@@ -206,6 +207,8 @@ public class CombinedComponent : ComponentBase
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
+        vb.Child = inner;
+        grid.Children.Add(vb);
         return grid;
     }
 }
