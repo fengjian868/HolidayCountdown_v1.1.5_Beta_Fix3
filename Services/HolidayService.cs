@@ -144,7 +144,8 @@ public class HolidayService
             }
         }
         catch { }
-        return list.OrderBy(h => h.Date).ToList();
+        // 按名称去重，只保留每个节日的第一天（避免假期多天重复显示同一个节日）
+        return list.GroupBy(h => h.Name).Select(g => g.OrderBy(h => h.Date).First()).OrderBy(h => h.Date).ToList();
     }
 
     void SaveCache(List<Holiday> h)

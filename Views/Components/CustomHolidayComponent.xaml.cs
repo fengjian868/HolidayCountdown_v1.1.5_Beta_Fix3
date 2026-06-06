@@ -45,14 +45,18 @@ public class CustomHolidayComponent : ComponentBase
         }).Where(h => h.Date.Date >= now.Date).OrderBy(h => h.Date).Take(s.CustomHolidayDisplayCount).ToList();
 
         if (list.Count == 0) { _main.Children.Add(new TextBlock { Text = "暂无自定义节日", Opacity = 0.5, HorizontalAlignment = HorizontalAlignment.Center }); return; }
+
+        // 所有节日横向排列
+        var container = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         foreach (var h in list)
         {
             var days = (int)(h.Date.Date - now.Date).TotalDays;
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-            if (s.CustomHolidayShowIcon) row.Children.Add(new TextBlock { Text = "🎂", FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
-            row.Children.Add(new TextBlock { Text = h.Name, FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#E91E63")), VerticalAlignment = VerticalAlignment.Center });
-            if (s.CustomHolidayShowDays) row.Children.Add(new TextBlock { Text = days == 0 ? "就是今天！" : $"还有 {days} 天", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 });
-            _main.Children.Add(row);
+            var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+            if (s.CustomHolidayShowIcon) item.Children.Add(new TextBlock { Text = "🎂", FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
+            item.Children.Add(new TextBlock { Text = h.Name, FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#E91E63")), VerticalAlignment = VerticalAlignment.Center });
+            if (s.CustomHolidayShowDays) item.Children.Add(new TextBlock { Text = days == 0 ? "就是今天！" : $"还有 {days} 天", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 });
+            container.Children.Add(item);
         }
+        _main.Children.Add(container);
     }
 }
