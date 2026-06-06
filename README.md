@@ -26,12 +26,6 @@
 - 颜色设置全部改为 ColorPicker 调色盘
 - 各组件和设置页图标区分
 
-## 安装方法
-
-1. 编译项目生成 `HolidayCountdown.dll`
-2. 将 `HolidayCountdown.dll`、`HolidayCountdown.deps.json`、`manifest.yml`、`icon.png` 复制到 ClassIsland 插件目录
-3. 重启 ClassIsland
-
 ## 使用说明
 
 ### 节假日倒计时组件

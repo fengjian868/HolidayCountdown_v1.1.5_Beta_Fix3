@@ -23,110 +23,33 @@ public class WeatherGreetingComponent : ComponentBase
     private DispatcherTimer _timer = null!;
     private TextBlock _txt = null!;
     private HolidayService? _svc;
-    private object? _weatherService;
-    private PropertyInfo? _currentWeatherProp;
-    private PropertyInfo? _weatherStatusProp;
-    private PropertyInfo? _warningProp;
 
     public WeatherGreetingComponent()
     {
         var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("*"), VerticalAlignment = VerticalAlignment.Center };
         _txt = new TextBlock { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.9 };
         Grid.SetColumn(_txt, 0); panel.Children.Add(_txt); Content = panel;
-        _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(10) }; _timer.Tick += (s, e) => Update(); _timer.Start();
-        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); InitWeatherService(); Update(); });
-    }
-
-    void InitWeatherService()
-    {
-        try
-        {
-            // 通过反射获取 ClassIsland 主程序的天气服务
-            var appBaseType = Type.GetType("ClassIsland.Core.AppBase, ClassIsland.Core");
-            if (appBaseType == null) return;
-            var currentProp = appBaseType.GetProperty("Current", BindingFlags.Public | BindingFlags.Static);
-            if (currentProp == null) return;
-            var app = currentProp.GetValue(null);
-            if (app == null) return;
-
-            // 尝试获取 IServiceProvider
-            var spProp = appBaseType.GetProperty("Services", BindingFlags.Public | BindingFlags.Instance);
-            if (spProp == null) spProp = appBaseType.GetProperty("ServiceProvider", BindingFlags.Public | BindingFlags.Instance);
-            if (spProp == null)
-            {
-                // 尝试从 Host 获取
-                var hostProp = appBaseType.GetProperty("Host", BindingFlags.Public | BindingFlags.Static);
-                if (hostProp != null)
-                {
-                    var host = hostProp.GetValue(null);
-                    if (host != null)
-                    {
-                        var servicesProp = host.GetType().GetProperty("Services", BindingFlags.Public | BindingFlags.Instance);
-                        if (servicesProp != null)
-                        {
-                            var sp = servicesProp.GetValue(host);
-                            if (sp != null) ResolveWeatherService(sp);
-                        }
-                    }
-                }
-                return;
-            }
-            var serviceProvider = spProp.GetValue(app);
-            if (serviceProvider != null) ResolveWeatherService(serviceProvider);
-        }
-        catch { }
-    }
-
-    void ResolveWeatherService(object serviceProvider)
-    {
-        try
-        {
-            var getService = serviceProvider.GetType().GetMethod("GetService", BindingFlags.Public | BindingFlags.Instance);
-            if (getService == null) return;
-
-            // 尝试获取 IWeatherService
-            var weatherServiceType = Type.GetType("ClassIsland.Core.Abstractions.Services.IWeatherService, ClassIsland.Core");
-            if (weatherServiceType == null)
-            {
-                // 尝试从所有程序集中查找
-                foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
-                {
-                    weatherServiceType = asm.GetTypes().FirstOrDefault(t => t.Name == "IWeatherService");
-                    if (weatherServiceType != null) break;
-                }
-            }
-            if (weatherServiceType == null) return;
-
-            _weatherService = getService.Invoke(serviceProvider, new[] { weatherServiceType });
-            if (_weatherService == null) return;
-
-            var wsType = _weatherService.GetType();
-            _currentWeatherProp = wsType.GetProperty("CurrentWeather", BindingFlags.Public | BindingFlags.Instance);
-            _weatherStatusProp = wsType.GetProperty("WeatherStatus", BindingFlags.Public | BindingFlags.Instance);
-            _warningProp = wsType.GetProperty("WeatherWarning", BindingFlags.Public | BindingFlags.Instance);
-
-            // 如果找不到 CurrentWeather，尝试其他属性名
-            if (_currentWeatherProp == null)
-                _currentWeatherProp = wsType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .FirstOrDefault(p => p.Name.Contains("Weather") && p.Name.Contains("Current"));
-            if (_weatherStatusProp == null)
-                _weatherStatusProp = wsType.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-                    .FirstOrDefault(p => p.Name.Contains("Status") || p.Name.Contains("Condition"));
-        }
-        catch { }
+        _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(5) }; _timer.Tick += (s, e) => Update(); _timer.Start();
+        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); Update(); });
     }
 
     void Update()
     {
         if (_svc == null || !_svc.Settings.WeatherGreetingEnabled) { _txt.Text = ""; return; }
 
-        // 如果还没获取到天气服务，尝试初始化
-        if (_weatherService == null) { InitWeatherService(); }
-
-        var weather = GetWeatherText();
+        var weatherCode = GetCurrentWeatherCode();
         var warning = GetWeatherWarning();
 
-        var greet = weather switch
+        if (string.IsNullOrEmpty(weatherCode) && string.IsNullOrEmpty(warning))
+        {
+            _txt.Text = "";
+            return;
+        }
+
+        // 通过 IWeatherService.GetWeatherTextByCode 获取天气文本
+        var weatherText = GetWeatherTextByCode(weatherCode);
+
+        var greet = weatherText switch
         {
             var w when string.IsNullOrEmpty(w) => "",
             var w when w.Contains("雨") => "下雨记得带伞 ☔",
@@ -138,7 +61,7 @@ public class WeatherGreetingComponent : ComponentBase
             var w when w.Contains("风") => "大风天注意安全 🍃",
             var w when w.Contains("雷") => "雷电天气注意安全 ⚡",
             var w when w.Contains("云") => "多云天气，舒适宜人 ⛅",
-            _ => $"今日天气：{weather}"
+            _ => $"今日天气：{weatherText}"
         };
 
         if (!string.IsNullOrEmpty(warning))
@@ -147,27 +70,148 @@ public class WeatherGreetingComponent : ComponentBase
         _txt.Text = greet;
     }
 
-    string GetWeatherText()
+    /// <summary>
+    /// 通过反射获取当前天气代码
+    /// </summary>
+    string GetCurrentWeatherCode()
     {
         try
         {
-            if (_weatherService == null || _currentWeatherProp == null) return "";
-            var currentWeather = _currentWeatherProp.GetValue(_weatherService);
-            if (currentWeather == null) return "";
+            // 方式1：尝试通过 IAppHost.TryGetService<IWeatherService>() 获取
+            var appHostType = Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Shared")
+                ?? Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Core")
+                ?? AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .FirstOrDefault(t => t.Name == "IAppHost");
 
-            // 尝试获取天气文本属性
-            var cwType = currentWeather.GetType();
-            var textProp = cwType.GetProperty("Weather", BindingFlags.Public | BindingFlags.Instance)
-                ?? cwType.GetProperty("WeatherText", BindingFlags.Public | BindingFlags.Instance)
-                ?? cwType.GetProperty("Condition", BindingFlags.Public | BindingFlags.Instance)
-                ?? cwType.GetProperty("Status", BindingFlags.Public | BindingFlags.Instance)
-                ?? cwType.GetProperty("Description", BindingFlags.Public | BindingFlags.Instance);
+            if (appHostType != null)
+            {
+                // 尝试调用 TryGetService<IWeatherService>()
+                var tryGetService = appHostType.GetMethod("TryGetService", BindingFlags.Public | BindingFlags.Static);
+                if (tryGetService != null && tryGetService.IsGenericMethodDefinition)
+                {
+                    var weatherServiceType = Type.GetType("ClassIsland.Core.Abstractions.Services.IWeatherService, ClassIsland.Core")
+                        ?? AppDomain.CurrentDomain.GetAssemblies()
+                            .SelectMany(a => a.GetTypes())
+                            .FirstOrDefault(t => t.Name == "IWeatherService");
 
-            if (textProp != null)
-                return textProp.GetValue(currentWeather)?.ToString() ?? "";
+                    if (weatherServiceType != null)
+                    {
+                        var genericMethod = tryGetService.MakeGenericMethod(weatherServiceType);
+                        var weatherService = genericMethod.Invoke(null, null);
+                        if (weatherService != null)
+                        {
+                            // 获取 WeatherStatusList 和 IsWeatherRefreshed
+                            var wsType = weatherService.GetType();
+                            var isRefreshedProp = wsType.GetProperty("IsWeatherRefreshed");
+                            if (isRefreshedProp != null)
+                            {
+                                var isRefreshed = (bool)(isRefreshedProp.GetValue(weatherService) ?? false);
+                                if (!isRefreshed) return "";
+                            }
 
-            // 尝试 ToString
-            return currentWeather.ToString() ?? "";
+                            // 通过 SettingsService.Settings.LastWeatherInfo.Current.Weather 获取天气代码
+                            return GetWeatherCodeViaSettings();
+                        }
+                    }
+                }
+            }
+
+            // 方式2：直接通过 SettingsService 获取
+            return GetWeatherCodeViaSettings();
+        }
+        catch { return ""; }
+    }
+
+    string GetWeatherCodeViaSettings()
+    {
+        try
+        {
+            // 获取 SettingsService
+            var appHostType = Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Shared")
+                ?? Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Core")
+                ?? AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .FirstOrDefault(t => t.Name == "IAppHost");
+
+            if (appHostType == null) return "";
+
+            var tryGetService = appHostType.GetMethod("TryGetService", BindingFlags.Public | BindingFlags.Static);
+            if (tryGetService == null || !tryGetService.IsGenericMethodDefinition) return "";
+
+            // 查找 SettingsService 类型
+            var settingsServiceType = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t => t.Name == "SettingsService");
+
+            if (settingsServiceType == null) return "";
+
+            var genericMethod = tryGetService.MakeGenericMethod(settingsServiceType);
+            var settingsService = genericMethod.Invoke(null, null);
+            if (settingsService == null) return "";
+
+            // 获取 Settings 属性
+            var settingsProp = settingsServiceType.GetProperty("Settings", BindingFlags.Public | BindingFlags.Instance);
+            if (settingsProp == null) return "";
+
+            var settings = settingsProp.GetValue(settingsService);
+            if (settings == null) return "";
+
+            // 获取 LastWeatherInfo 属性
+            var lastWeatherInfoProp = settings.GetType().GetProperty("LastWeatherInfo", BindingFlags.Public | BindingFlags.Instance);
+            if (lastWeatherInfoProp == null) return "";
+
+            var lastWeatherInfo = lastWeatherInfoProp.GetValue(settings);
+            if (lastWeatherInfo == null) return "";
+
+            // 获取 Current 属性
+            var currentProp = lastWeatherInfo.GetType().GetProperty("Current", BindingFlags.Public | BindingFlags.Instance);
+            if (currentProp == null) return "";
+
+            var current = currentProp.GetValue(lastWeatherInfo);
+            if (current == null) return "";
+
+            // 获取 Weather 属性（天气代码）
+            var weatherProp = current.GetType().GetProperty("Weather", BindingFlags.Public | BindingFlags.Instance);
+            if (weatherProp == null) return "";
+
+            return weatherProp.GetValue(current)?.ToString() ?? "";
+        }
+        catch { return ""; }
+    }
+
+    string GetWeatherTextByCode(string code)
+    {
+        if (string.IsNullOrEmpty(code)) return "";
+        try
+        {
+            // 通过 IWeatherService.GetWeatherTextByCode 获取天气文本
+            var appHostType = Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Shared")
+                ?? Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Core")
+                ?? AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .FirstOrDefault(t => t.Name == "IAppHost");
+
+            if (appHostType == null) return "";
+
+            var tryGetService = appHostType.GetMethod("TryGetService", BindingFlags.Public | BindingFlags.Static);
+            if (tryGetService == null || !tryGetService.IsGenericMethodDefinition) return "";
+
+            var weatherServiceType = Type.GetType("ClassIsland.Core.Abstractions.Services.IWeatherService, ClassIsland.Core")
+                ?? AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .FirstOrDefault(t => t.Name == "IWeatherService");
+
+            if (weatherServiceType == null) return "";
+
+            var genericMethod = tryGetService.MakeGenericMethod(weatherServiceType);
+            var weatherService = genericMethod.Invoke(null, null);
+            if (weatherService == null) return "";
+
+            var getWeatherText = weatherServiceType.GetMethod("GetWeatherTextByCode", BindingFlags.Public | BindingFlags.Instance);
+            if (getWeatherText == null) return "";
+
+            return getWeatherText.Invoke(weatherService, new object[] { code })?.ToString() ?? "";
         }
         catch { return ""; }
     }
@@ -176,13 +220,78 @@ public class WeatherGreetingComponent : ComponentBase
     {
         try
         {
-            if (_weatherService == null) return "";
-            if (_warningProp != null)
+            var appHostType = Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Shared")
+                ?? Type.GetType("ClassIsland.Shared.IAppHost, ClassIsland.Core")
+                ?? AppDomain.CurrentDomain.GetAssemblies()
+                    .SelectMany(a => a.GetTypes())
+                    .FirstOrDefault(t => t.Name == "IAppHost");
+
+            if (appHostType == null) return "";
+
+            var tryGetService = appHostType.GetMethod("TryGetService", BindingFlags.Public | BindingFlags.Static);
+            if (tryGetService == null || !tryGetService.IsGenericMethodDefinition) return "";
+
+            var settingsServiceType = AppDomain.CurrentDomain.GetAssemblies()
+                .SelectMany(a => a.GetTypes())
+                .FirstOrDefault(t => t.Name == "SettingsService");
+
+            if (settingsServiceType == null) return "";
+
+            var genericMethod = tryGetService.MakeGenericMethod(settingsServiceType);
+            var settingsService = genericMethod.Invoke(null, null);
+            if (settingsService == null) return "";
+
+            var settingsProp = settingsServiceType.GetProperty("Settings", BindingFlags.Public | BindingFlags.Instance);
+            if (settingsProp == null) return "";
+
+            var settings = settingsProp.GetValue(settingsService);
+            if (settings == null) return "";
+
+            var lastWeatherInfoProp = settings.GetType().GetProperty("LastWeatherInfo", BindingFlags.Public | BindingFlags.Instance);
+            if (lastWeatherInfoProp == null) return "";
+
+            var lastWeatherInfo = lastWeatherInfoProp.GetValue(settings);
+            if (lastWeatherInfo == null) return "";
+
+            // 获取 Alerts 属性
+            var alertsProp = lastWeatherInfo.GetType().GetProperty("Alerts", BindingFlags.Public | BindingFlags.Instance);
+            if (alertsProp == null) return "";
+
+            var alerts = alertsProp.GetValue(lastWeatherInfo);
+            if (alerts == null) return "";
+
+            // Alerts 是 List<WeatherAlert>
+            var countProp = alerts.GetType().GetProperty("Count");
+            if (countProp == null) return "";
+
+            var count = (int)(countProp.GetValue(alerts) ?? 0);
+            if (count == 0) return "";
+
+            // 获取第一个预警的 Title
+            var indexer = alerts.GetType().GetProperty("Item");
+            if (indexer == null)
             {
-                var warning = _warningProp.GetValue(_weatherService);
-                if (warning != null) return warning.ToString() ?? "";
+                // 尝试通过 LINQ FirstOrDefault
+                var firstMethod = alerts.GetType().GetMethods()
+                    .FirstOrDefault(m => m.Name == "FirstOrDefault" && m.GetParameters().Length == 0);
+                if (firstMethod != null)
+                {
+                    var firstAlert = firstMethod.Invoke(alerts, null);
+                    if (firstAlert != null)
+                    {
+                        var titleProp = firstAlert.GetType().GetProperty("Title", BindingFlags.Public | BindingFlags.Instance);
+                        return titleProp?.GetValue(firstAlert)?.ToString() ?? "";
+                    }
+                }
+                return "";
             }
-            return "";
+
+            // 使用索引器获取第一个元素
+            var first = alerts.GetType().GetMethod("get_Item")?.Invoke(alerts, new object[] { 0 });
+            if (first == null) return "";
+
+            var title = first.GetType().GetProperty("Title", BindingFlags.Public | BindingFlags.Instance);
+            return title?.GetValue(first)?.ToString() ?? "";
         }
         catch { return ""; }
     }

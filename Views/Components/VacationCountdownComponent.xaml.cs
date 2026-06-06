@@ -79,23 +79,23 @@ public class VacationCountdownComponent : ComponentBase
             }
             else
             {
-                _main.Children.Add(new TextBlock 
-                { 
-                    Text = $"距离{nearest.Name}还有", 
-                    HorizontalAlignment = HorizontalAlignment.Center, 
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+                row.Children.Add(new TextBlock
+                {
+                    Text = $"距离{nearest.Name}还有",
                     Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
                     FontWeight = FontWeight.SemiBold,
                     FontSize = 12,
-                    Margin = new Thickness(0, 1, 0, 0)
+                    VerticalAlignment = VerticalAlignment.Center
                 });
-                _main.Children.Add(new TextBlock 
-                { 
-                    Text = $"{weeks} 周 {days} 天", 
-                    HorizontalAlignment = HorizontalAlignment.Center, 
+                row.Children.Add(new TextBlock
+                {
+                    Text = $"{weeks} 周 {days} 天",
                     Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
                     FontSize = 12,
-                    Margin = new Thickness(0, 0, 0, 1)
+                    VerticalAlignment = VerticalAlignment.Center
                 });
+                _main.Children.Add(row);
             }
         }
         else
