@@ -90,5 +90,3 @@ public class LunarSettingsPage : SettingsPageBase
     static TextBox Tx(string v, int w, Action<string> cb) { var t = new TextBox { Text = v, Width = w }; t.LostFocus += (a, b) => cb(t.Text ?? ""); return t; }
     Button SaveBtn() { var b = new Button { Content = "💾 保存", Padding = new Thickness(20, 8) }; b.Click += (a, e) => { _svc.SaveSettings(); b.Content = "✅ 已保存"; }; return b; }
 }
-
-public static class PanelExt2 { public static T Also<T>(this T t, Action<T> a) { a(t); return t; } }
