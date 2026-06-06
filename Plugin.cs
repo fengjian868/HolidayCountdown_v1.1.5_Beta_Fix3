@@ -11,7 +11,6 @@ public class Plugin : PluginBase
 {
     public override void Initialize(HostBuilderContext context, IServiceCollection services)
     {
-        services.AddComponent<Views.Components.CombinedComponent>();
         services.AddComponent<Views.Components.HolidayCountdownComponent>();
         services.AddComponent<Views.Components.GreetingComponent>();
         services.AddComponent<Views.Components.SolarTermComponent>();
