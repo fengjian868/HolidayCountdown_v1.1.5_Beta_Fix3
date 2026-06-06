@@ -243,19 +243,17 @@ public class HolidayService
     public double GetYearRatio()
     {
         var y = DateTime.Now.Year;
-        var yearStart = new DateTime(y, 1, 1);
-        var yearEnd = new DateTime(y + 1, 1, 1);
-        var totalDays = (yearEnd - yearStart).TotalDays;
-        var allHolidays = _holidays.Where(h => h.Date.Year == y && !h.IsWorkday).ToList();
+        // 使用内置数据获取准确的放假天数（网络数据 DaysOff 不准确）
+        var allHolidays = LoadBuiltIn().Where(h => h.Date.Year == y && !h.IsWorkday).ToList();
         var custom = Settings.CustomHolidays.Where(ch =>
         {
             var d = ch.Date; if (ch.RepeatYearly) d = new DateTime(y, ch.Date.Month, ch.Date.Day);
             return d.Year == y;
         }).Select(ch => new Holiday { Date = ch.Date, DaysOff = 1 }).ToList();
         allHolidays.AddRange(custom);
-        var holidayDays = allHolidays.Sum(h => h.DaysOff);
+        var totalHolidayDays = allHolidays.Sum(h => h.DaysOff);
         var remaining = allHolidays.Where(h => h.Date >= DateTime.Now.Date).Sum(h => h.DaysOff);
-        return holidayDays > 0 ? remaining / holidayDays : 0;
+        return totalHolidayDays > 0 ? remaining / totalHolidayDays : 0;
     }
 
     public async Task<LunarInfo?> GetLunarAsync()

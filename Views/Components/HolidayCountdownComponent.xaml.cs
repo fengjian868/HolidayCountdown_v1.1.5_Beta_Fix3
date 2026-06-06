@@ -90,11 +90,12 @@ public class HolidayCountdownComponent : ComponentBase
                 firstRow.Children.Add(nameDaysRow);
                 item.Children.Add(firstRow);
 
-                // 第二行：当年假期剩余百分比（比节日名称小）
+                // 第二行：当年假期剩余百分比（比节日名称小，和节日名称左对齐）
                 if (_svc.Settings.ShowYearRatio && i == 0)
                 {
                     var ratio = _svc.GetYearRatio();
-                    item.Children.Add(new TextBlock { Text = $"当年假期剩余 {ratio:P0}", HorizontalAlignment = HorizontalAlignment.Left, FontSize = 8, Opacity = 0.45, Margin = new Thickness(0, 0, 0, 0) });
+                    // 左边距 = 圆圈宽度32 + 间距4，让百分比和节日名称左对齐
+                    item.Children.Add(new TextBlock { Text = $"当年假期剩余 {ratio:P1}", HorizontalAlignment = HorizontalAlignment.Left, FontSize = 8, Opacity = 0.45, Margin = new Thickness(36, 0, 0, 0) });
                 }
 
                 row.Children.Add(item);
@@ -109,7 +110,7 @@ public class HolidayCountdownComponent : ComponentBase
             if (_svc.Settings.ShowYearRatio)
             {
                 var ratio = _svc.GetYearRatio();
-                noHolidayRow.Children.Add(new TextBlock { Text = $"({ratio:P0})", VerticalAlignment = VerticalAlignment.Center, FontSize = 9, Opacity = 0.5 });
+                noHolidayRow.Children.Add(new TextBlock { Text = $"({ratio:P1})", VerticalAlignment = VerticalAlignment.Center, FontSize = 9, Opacity = 0.5 });
             }
             _main.Children.Add(noHolidayRow);
         }
