@@ -70,32 +70,34 @@ public class HolidayCountdownComponent : ComponentBase
                 var h = hs[i]; var days = (int)(h.Date.Date - DateTime.Now.Date).TotalDays;
                 var color = _svc.Settings.AutoHolidayColor ? _svc.GetHolidayColor(h.Name) : Color.Parse("#2196F3");
 
-                // 每个节日项：横向排列，进度环/图标和文字都在同一行
-                var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+                // 每个节日项：垂直排列，进度环/图标和文字在第一行，百分比在第二行
+                var item = new StackPanel { Orientation = Orientation.Vertical, Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
 
+                // 第一行：进度环/图标 + 节日名称和天数
+                var firstRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
                 if (_svc.Settings.ShowProgressRing && i == 0)
                 {
                     var prev = _svc.GetPrevHoliday();
-                    item.Children.Add(CreateArc(days, prev, h, color));
+                    firstRow.Children.Add(CreateArc(days, prev, h, color));
                 }
-                else item.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
+                else firstRow.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
 
-                // 节日名称和天数在同一行
                 var nameDaysRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
                 nameDaysRow.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, FontSize = 11 });
                 var daysText = days == 0 ? "今天" : $"还有{days}天";
                 if (_svc.Settings.ShowDaysOff && h.DaysOff > 1 && days >= 0) daysText += $"(放{h.DaysOff}天)";
                 nameDaysRow.Children.Add(new TextBlock { Text = daysText, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8, FontSize = 10 });
-                item.Children.Add(nameDaysRow);
+                firstRow.Children.Add(nameDaysRow);
+                item.Children.Add(firstRow);
+
+                // 第二行：当年假期剩余百分比（比节日名称小）
+                if (_svc.Settings.ShowYearRatio && i == 0)
+                {
+                    var ratio = _svc.GetYearRatio();
+                    item.Children.Add(new TextBlock { Text = $"当年假期剩余 {ratio:P0}", HorizontalAlignment = HorizontalAlignment.Left, FontSize = 8, Opacity = 0.45, Margin = new Thickness(0, 0, 0, 0) });
+                }
 
                 row.Children.Add(item);
-            }
-
-            // 当年假期剩余百分比直接跟在最后一个节日后面
-            if (_svc.Settings.ShowYearRatio)
-            {
-                var ratio = _svc.GetYearRatio();
-                row.Children.Add(new TextBlock { Text = $"({ratio:P0})", VerticalAlignment = VerticalAlignment.Center, FontSize = 9, Opacity = 0.5, Margin = new Thickness(4, 0, 0, 0) });
             }
 
             _main.Children.Add(row);
