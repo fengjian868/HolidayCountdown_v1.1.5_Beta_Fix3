@@ -71,7 +71,6 @@ public class VacationCountdownComponent : ComponentBase
                     HorizontalAlignment = HorizontalAlignment.Center, 
                     Foreground = new SolidColorBrush(Color.Parse("#4CAF50")),
                     FontWeight = FontWeight.SemiBold,
-                    FontSize = 12,
                     Margin = new Thickness(0, 1, 0, 0)
                 });
                 _main.Children.Add(new TextBlock 
@@ -79,7 +78,6 @@ public class VacationCountdownComponent : ComponentBase
                     Text = $"剩余 {weeks} 周 {days} 天", 
                     HorizontalAlignment = HorizontalAlignment.Center, 
                     Foreground = new SolidColorBrush(Color.Parse("#4CAF50")),
-                    FontSize = 12,
                     Margin = new Thickness(0, 0, 0, 1)
                 });
             }
@@ -91,14 +89,12 @@ public class VacationCountdownComponent : ComponentBase
                     Text = $"距离{nearest.Name}还有",
                     Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
                     FontWeight = FontWeight.SemiBold,
-                    FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center
                 });
                 row.Children.Add(new TextBlock
                 {
                     Text = $"{weeks} 周 {days} 天",
                     Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
-                    FontSize = 12,
                     VerticalAlignment = VerticalAlignment.Center
                 });
                 _main.Children.Add(row);

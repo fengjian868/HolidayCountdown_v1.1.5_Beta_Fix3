@@ -27,7 +27,7 @@ public class HolidayCountdownComponent : ComponentBase
 
     public HolidayCountdownComponent()
     {
-        _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+        _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         Content = _main;
         Dispatcher.UIThread.Post(() =>
         {
@@ -58,7 +58,7 @@ public class HolidayCountdownComponent : ComponentBase
         {
             var rd = (int)(wr.Date.Date - DateTime.Now.Date).TotalDays;
             if (rd <= _svc.Settings.WorkdayReminderDays)
-                _main.Children.Add(new TextBlock { Text = rd == 0 ? "⚠️ 明天调休上课" : $"⚠️ {rd}天后调休上课", Foreground = new SolidColorBrush(Colors.Orange), FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center, FontSize = 10 });
+                _main.Children.Add(new TextBlock { Text = rd == 0 ? "⚠️ 明天调休上课" : $"⚠️ {rd}天后调休上课", Foreground = new SolidColorBrush(Colors.Orange), FontWeight = FontWeight.SemiBold, HorizontalAlignment = HorizontalAlignment.Center });
         }
 
         var hs = _svc.GetNextHolidays(_svc.Settings.DisplayCount);
@@ -71,7 +71,7 @@ public class HolidayCountdownComponent : ComponentBase
                 var color = _svc.Settings.AutoHolidayColor ? _svc.GetHolidayColor(h.Name) : Color.Parse("#2196F3");
 
                 // 每个节日项：垂直排列，进度环/图标和文字在第一行，百分比在第二行
-                var item = new StackPanel { Orientation = Orientation.Vertical, Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+                var item = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
 
                 // 第一行：进度环/图标 + 节日名称和天数
                 var firstRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
@@ -83,10 +83,10 @@ public class HolidayCountdownComponent : ComponentBase
                 else firstRow.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
 
                 var nameDaysRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
-                nameDaysRow.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, FontSize = 11 });
+                nameDaysRow.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
                 var daysText = days == 0 ? "今天" : $"还有{days}天";
                 if (_svc.Settings.ShowDaysOff && h.DaysOff > 1 && days >= 0) daysText += $"(放{h.DaysOff}天)";
-                nameDaysRow.Children.Add(new TextBlock { Text = daysText, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8, FontSize = 11 });
+                nameDaysRow.Children.Add(new TextBlock { Text = daysText, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8 });
                 firstRow.Children.Add(nameDaysRow);
                 item.Children.Add(firstRow);
 
@@ -94,8 +94,8 @@ public class HolidayCountdownComponent : ComponentBase
                 if (_svc.Settings.ShowYearRatio && i == 0)
                 {
                     var ratio = _svc.GetYearRatio();
-                    // 左边距 = 圆圈宽度32 + 间距4，让百分比和节日名称左对齐；上边距-2拉近间距
-                    item.Children.Add(new TextBlock { Text = $"当年假期剩余 {ratio:P1}", HorizontalAlignment = HorizontalAlignment.Left, FontSize = 8, Opacity = 0.45, Margin = new Thickness(36, -2, 0, 0) });
+                    // 左边距 = 圆圈宽度32 + 间距4，让百分比和节日名称左对齐；无垂直间距
+                    item.Children.Add(new TextBlock { Text = $"当年假期剩余 {ratio:P1}", HorizontalAlignment = HorizontalAlignment.Left, FontSize = 8, Opacity = 0.45, Margin = new Thickness(36, 0, 0, 0) });
                 }
 
                 row.Children.Add(item);
@@ -106,7 +106,7 @@ public class HolidayCountdownComponent : ComponentBase
         else
         {
             var noHolidayRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center };
-            noHolidayRow.Children.Add(new TextBlock { Text = "暂无节假日", HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.5, FontSize = 11 });
+            noHolidayRow.Children.Add(new TextBlock { Text = "暂无节假日", HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.5 });
             if (_svc.Settings.ShowYearRatio)
             {
                 var ratio = _svc.GetYearRatio();
