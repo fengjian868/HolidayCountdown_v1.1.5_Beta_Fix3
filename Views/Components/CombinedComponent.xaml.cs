@@ -68,7 +68,7 @@ public class CombinedComponent : ComponentBase
             }
         }
 
-        // 节假日横向排列
+        // 节假日横向排列（只显示官方节假日，不包含自定义节日）
         var hs = _svc.GetNextHolidays(_svc.Settings.DisplayCount);
         if (hs.Count > 0)
         {

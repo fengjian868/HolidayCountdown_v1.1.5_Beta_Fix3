@@ -190,13 +190,6 @@ public class HolidayService
     {
         var now = DateTime.Now;
         var all = new List<Holiday>(_holidays);
-        foreach (var ch in Settings.CustomHolidays)
-        {
-            var d = ch.Date;
-            if (ch.RepeatYearly && d.Year < now.Year) d = new DateTime(now.Year, ch.Date.Month, ch.Date.Day);
-            if (ch.RepeatYearly && ch.Date.Month == 2 && ch.Date.Day == 29 && !DateTime.IsLeapYear(now.Year)) d = new DateTime(now.Year, 2, 28);
-            if (d.Date >= now.Date) all.Add(new Holiday { Name = ch.Name, Date = d, IsCustom = true });
-        }
         if (Settings.ShowWeekendCountdown)
         {
             var sat = NextWeekend(DayOfWeek.Saturday); var sun = NextWeekend(DayOfWeek.Sunday);
@@ -204,6 +197,21 @@ public class HolidayService
             if (sun >= now.Date) all.Add(new Holiday { Name = "周日", Date = sun, IsCustom = true });
         }
         return all.Where(h => h.Date.Date >= now.Date && !h.IsWorkday && h.IsEnabled && !Settings.DisabledHolidays.Contains(h.Name))
+                  .OrderBy(h => h.Date).Take(count).ToList();
+    }
+
+    public List<Holiday> GetNextCustomHolidays(int count)
+    {
+        var now = DateTime.Now;
+        var all = new List<Holiday>();
+        foreach (var ch in Settings.CustomHolidays)
+        {
+            var d = ch.Date;
+            if (ch.RepeatYearly && d.Year < now.Year) d = new DateTime(now.Year, ch.Date.Month, ch.Date.Day);
+            if (ch.RepeatYearly && ch.Date.Month == 2 && ch.Date.Day == 29 && !DateTime.IsLeapYear(now.Year)) d = new DateTime(now.Year, 2, 28);
+            if (d.Date >= now.Date) all.Add(new Holiday { Name = ch.Name, Date = d, IsCustom = true });
+        }
+        return all.Where(h => h.Date.Date >= now.Date && !h.IsWorkday && h.IsEnabled)
                   .OrderBy(h => h.Date).Take(count).ToList();
     }
 
