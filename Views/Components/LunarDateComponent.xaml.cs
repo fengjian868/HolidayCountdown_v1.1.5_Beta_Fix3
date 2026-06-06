@@ -38,7 +38,13 @@ public class LunarDateComponent : ComponentBase
         panel.Children.Add(_txt);
         Content = panel;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) }; _timer.Tick += (s, e) => _ = RefreshAsync(); _timer.Start();
-        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); _ = RefreshAsync(); });
+        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); HolidayService.SettingsChanged += OnSettingsChanged; _ = RefreshAsync(); });
+    }
+
+    void OnSettingsChanged()
+    {
+        _svc?.LoadSettings();
+        Dispatcher.UIThread.Post(() => _ = RefreshAsync());
     }
 
     async Task RefreshAsync()

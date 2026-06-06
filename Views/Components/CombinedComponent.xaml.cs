@@ -29,7 +29,22 @@ public class CombinedComponent : ComponentBase
     {
         _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         Content = _main;
-        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) }; _timer.Tick += (s, e) => Update(); _timer.Start(); Update(); });
+        Dispatcher.UIThread.Post(() =>
+        {
+            _svc = new HolidayService();
+            _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+            _timer.Tick += (s, e) => Update();
+            _timer.Start();
+            // 订阅设置变更事件，保存后立即刷新
+            HolidayService.SettingsChanged += OnSettingsChanged;
+            Update();
+        });
+    }
+
+    void OnSettingsChanged()
+    {
+        _svc?.LoadSettings();
+        Dispatcher.UIThread.Post(Update);
     }
 
     void Update()
@@ -72,36 +87,33 @@ public class CombinedComponent : ComponentBase
         var hs = _svc.GetNextHolidays(_svc.Settings.DisplayCount);
         if (hs.Count > 0)
         {
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
             for (int i = 0; i < hs.Count; i++)
             {
                 var h = hs[i];
                 var days = (int)(h.Date.Date - DateTime.Now.Date).TotalDays;
                 var color = _svc.Settings.AutoHolidayColor ? _svc.GetHolidayColor(h.Name) : Color.Parse("#2196F3");
 
-                var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+                var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
 
                 if (_svc.Settings.ShowProgressRing && i == 0)
                 {
                     var prev = _svc.GetPrevHoliday();
-                    var ring = CreateArcRing(days, prev, h, color);
-                    item.Children.Add(ring);
+                    item.Children.Add(CreateArcRing(days, prev, h, color));
                 }
                 else
                 {
-                    item.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center });
+                    item.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center, FontSize = 13 });
                 }
 
-                item.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
-                item.Children.Add(new TextBlock
-                {
-                    Text = days == 0 ? "就是今天！" : $"还有 {days} 天",
-                    VerticalAlignment = VerticalAlignment.Center,
-                    Opacity = 0.8
-                });
-
+                // 文字信息垂直排列在进度环右侧
+                var textCol = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+                textCol.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
+                var daysText = days == 0 ? "就是今天！" : $"还有 {days} 天";
                 if (_svc.Settings.ShowDaysOff && h.DaysOff > 1 && days >= 0)
-                    ((TextBlock)item.Children[item.Children.Count - 1]).Text += $"（放{h.DaysOff}天）";
+                    daysText += $"（放{h.DaysOff}天）";
+                textCol.Children.Add(new TextBlock { Text = daysText, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8, FontSize = 11 });
+                item.Children.Add(textCol);
 
                 row.Children.Add(item);
             }
@@ -168,7 +180,16 @@ public class CombinedComponent : ComponentBase
 
     Control CreateArcRing(int days, Holiday? prev, Holiday next, Color color)
     {
-        var vb = new Viewbox { Stretch = Stretch.Uniform, StretchDirection = StretchDirection.Both };
+        // 固定大小的进度环容器，避免穿模
+        var container = new Border
+        {
+            Width = 40,
+            Height = 40,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Background = Brushes.Transparent
+        };
+
         var inner = new Grid { Width = 36, Height = 36, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
 
         // 背景弧
@@ -202,16 +223,17 @@ public class CombinedComponent : ComponentBase
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
+        // 圈内显示节假日的日期（几号）
         inner.Children.Add(new TextBlock
         {
-            Text = days > 0 ? days.ToString() : "!",
+            Text = next.Date.Day.ToString(),
             FontSize = 10, FontWeight = FontWeight.Bold,
             Foreground = new SolidColorBrush(color),
             VerticalAlignment = VerticalAlignment.Center,
             HorizontalAlignment = HorizontalAlignment.Center
         });
 
-        vb.Child = inner;
-        return vb;
+        container.Child = inner;
+        return container;
     }
 }

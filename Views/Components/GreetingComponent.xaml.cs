@@ -37,7 +37,13 @@ public class GreetingComponent : ComponentBase
                 await _svc.RefreshGreetingsAsync();
         };
         refreshTimer.Start();
-        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); Update(); });
+        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); HolidayService.SettingsChanged += OnSettingsChanged; Update(); });
+    }
+
+    void OnSettingsChanged()
+    {
+        _svc?.LoadSettings();
+        Dispatcher.UIThread.Post(Update);
     }
 
     void Update()

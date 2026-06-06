@@ -28,7 +28,13 @@ public class VacationCountdownComponent : ComponentBase
         _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         Content = _main;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromHours(1) }; _timer.Tick += (s, e) => Update(); _timer.Start();
-        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); Update(); });
+        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); HolidayService.SettingsChanged += OnSettingsChanged; Update(); });
+    }
+
+    void OnSettingsChanged()
+    {
+        _svc?.LoadSettings();
+        Dispatcher.UIThread.Post(Update);
     }
 
     void Update()

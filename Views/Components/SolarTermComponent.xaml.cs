@@ -30,7 +30,13 @@ public class SolarTermComponent : ComponentBase
         _main = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         Content = _main;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) }; _timer.Tick += (s, e) => Update(); _timer.Start();
-        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); _ = Task.Run(async () => await SolarTermData.TryRefreshAsync()); Update(); });
+        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); HolidayService.SettingsChanged += OnSettingsChanged; _ = Task.Run(async () => await SolarTermData.TryRefreshAsync()); Update(); });
+    }
+
+    void OnSettingsChanged()
+    {
+        _svc?.LoadSettings();
+        Dispatcher.UIThread.Post(Update);
     }
 
     void Update()

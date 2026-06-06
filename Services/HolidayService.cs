@@ -21,6 +21,11 @@ public class HolidayService
 
     public PluginSettings Settings { get; set; } = new();
 
+    /// <summary>
+    /// 设置变更事件，保存设置后触发，通知所有组件刷新
+    /// </summary>
+    public static event Action? SettingsChanged;
+
     public HolidayService()
     {
         _builtIn = LoadBuiltIn();
@@ -107,6 +112,8 @@ public class HolidayService
             File.WriteAllText(_settingsPath, JsonSerializer.Serialize(Settings, opt));
         }
         catch { }
+        // 触发设置变更事件，通知所有组件刷新
+        SettingsChanged?.Invoke();
     }
 
     bool CacheValid() => File.Exists(_cachePath) && (DateTime.Now - new FileInfo(_cachePath).LastWriteTime).TotalDays < 7;
@@ -248,7 +255,7 @@ public class HolidayService
         allHolidays.AddRange(custom);
         var holidayDays = allHolidays.Sum(h => h.DaysOff);
         var remaining = allHolidays.Where(h => h.Date >= DateTime.Now.Date).Sum(h => h.DaysOff);
-        return totalDays > 0 ? remaining / holidayDays : 0;
+        return holidayDays > 0 ? remaining / holidayDays : 0;
     }
 
     public async Task<LunarInfo?> GetLunarAsync()
