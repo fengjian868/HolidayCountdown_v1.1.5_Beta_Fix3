@@ -70,7 +70,7 @@ public class HolidayCountdownComponent : ComponentBase
                 var h = hs[i]; var days = (int)(h.Date.Date - DateTime.Now.Date).TotalDays;
                 var color = _svc.Settings.AutoHolidayColor ? _svc.GetHolidayColor(h.Name) : Color.Parse("#2196F3");
 
-                // 每个节日项：横向排列，进度环和文字分开
+                // 每个节日项：横向排列，进度环/图标和文字都在同一行
                 var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
 
                 if (_svc.Settings.ShowProgressRing && i == 0)
@@ -80,13 +80,13 @@ public class HolidayCountdownComponent : ComponentBase
                 }
                 else item.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center, FontSize = 13 });
 
-                // 文字信息垂直排列在进度环右侧
-                var textCol = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
-                textCol.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
+                // 节日名称和天数在同一行
+                var nameDaysRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, VerticalAlignment = VerticalAlignment.Center };
+                nameDaysRow.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center, FontSize = 12 });
                 var daysText = days == 0 ? "就是今天！" : $"还有 {days} 天";
                 if (_svc.Settings.ShowDaysOff && h.DaysOff > 1 && days >= 0) daysText += $"（放{h.DaysOff}天）";
-                textCol.Children.Add(new TextBlock { Text = daysText, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8, FontSize = 11 });
-                item.Children.Add(textCol);
+                nameDaysRow.Children.Add(new TextBlock { Text = daysText, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.8, FontSize = 11 });
+                item.Children.Add(nameDaysRow);
 
                 row.Children.Add(item);
             }
