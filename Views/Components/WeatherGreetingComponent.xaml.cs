@@ -34,25 +34,6 @@ public class WeatherGreetingComponent : ComponentBase
     void Update()
     {
         if (_svc == null || !_svc.Settings.WeatherGreetingEnabled) { _txt.Text = ""; return; }
-        // 尝试通过AppHost获取天气（如果ClassIsland暴露）
-        // 由于API不确定，先显示占位并尝试读取全局存储
-        try
-        {
-            var weather = ""; // TODO: 通过IWeatherService获取
-            var warning = "";
-            var greet = weather switch
-            {
-                var w when w.Contains("雨") => "下雨记得带伞 ☔",
-                var w when w.Contains("雪") => "下雪了，注意保暖 ❄️",
-                var w when w.Contains("晴") => "天气不错，保持好心情 ☀️",
-                var w when w.Contains("阴") => "阴天适合专注学习 📖",
-                var w when w.Contains("雾") => "雾大注意安全 🌫️",
-                var w when w.Contains("霾") => "霾天减少户外活动 😷",
-                _ => ""
-            };
-            if (!string.IsNullOrEmpty(warning)) greet = $"⚠️ {warning} " + greet;
-            _txt.Text = greet;
-        }
-        catch { _txt.Text = ""; }
+        _txt.Text = _svc.Settings.WeatherGreetingEnabled ? "☀️ 天气问候已启用" : "";
     }
 }

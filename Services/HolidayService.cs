@@ -59,14 +59,14 @@ public class HolidayService
 
     void InitDefaults()
     {
-        if (Settings.HourlyGreetings.Count == 0)
+        if (Settings.TimeSlotGreetings.Count == 0)
         {
-            Settings.HourlyGreetings[5] = "早啊，今天也要加油 💪";
-            Settings.HourlyGreetings[8] = "上午好，距离午休还有几节课";
-            Settings.HourlyGreetings[12] = "吃饭时间到！🍚";
-            Settings.HourlyGreetings[14] = "下午容易犯困，坚持住 😪";
-            Settings.HourlyGreetings[17] = "再坚持一下就能run了！";
-            Settings.HourlyGreetings[19] = "夜猫子模式启动 🦉";
+            Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 5, StartMinute = 0, EndHour = 8, EndMinute = 0, Text = "早啊，今天也要加油 💪" });
+            Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 8, StartMinute = 0, EndHour = 12, EndMinute = 0, Text = "上午好，距离午休还有几节课" });
+            Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 12, StartMinute = 0, EndHour = 14, EndMinute = 0, Text = "吃饭时间到！🍚" });
+            Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 14, StartMinute = 0, EndHour = 17, EndMinute = 0, Text = "下午容易犯困，坚持住 😪" });
+            Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 17, StartMinute = 0, EndHour = 19, EndMinute = 0, Text = "再坚持一下就能run了！" });
+            Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 19, StartMinute = 0, EndHour = 23, EndMinute = 59, Text = "夜猫子模式启动 🦉" });
         }
         if (Settings.SpecialGreetings.Count == 0)
         {
@@ -294,19 +294,6 @@ public class HolidayService
         if (!Settings.GreetingOnline) return;
         try
         {
-            if (File.Exists(_greetingCachePath))
-            {
-                var cached = JsonSerializer.Deserialize<Dictionary<string, string>>(File.ReadAllText(_greetingCachePath));
-                if (cached != null && cached.TryGetValue("_date", out var d) && d == DateTime.Now.ToString("yyyy-MM"))
-                {
-                    foreach (var kv in cached) if (kv.Key != "_date") Settings.HourlyGreetings[int.Parse(kv.Key)] = kv.Value;
-                    return;
-                }
-            }
-        }
-        catch { }
-        try
-        {
             using var c = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
             var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
             using var doc = JsonDocument.Parse(r);
@@ -316,10 +303,14 @@ public class HolidayService
                 var text = hp.GetString() ?? "";
                 if (!string.IsNullOrEmpty(text))
                 {
-                    Settings.HourlyGreetings[DateTime.Now.Hour] = text;
-                    var cache = new Dictionary<string, string> { ["_date"] = DateTime.Now.ToString("yyyy-MM") };
-                    foreach (var kv in Settings.HourlyGreetings) cache[kv.Key.ToString()] = kv.Value;
-                    File.WriteAllText(_greetingCachePath, JsonSerializer.Serialize(cache));
+                    var now = DateTime.Now;
+                    var slot = Settings.TimeSlotGreetings.FirstOrDefault(s =>
+                    {
+                        var start = new TimeSpan(s.StartHour, s.StartMinute, 0);
+                        var end = new TimeSpan(s.EndHour, s.EndMinute, 0);
+                        return now.TimeOfDay >= start && now.TimeOfDay < end;
+                    });
+                    if (slot != null) slot.Text = text;
                 }
             }
         }

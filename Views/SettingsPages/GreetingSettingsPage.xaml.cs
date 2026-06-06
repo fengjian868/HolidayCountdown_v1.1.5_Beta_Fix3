@@ -6,6 +6,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using ClassIsland.Core.Attributes;
 using ClassIsland.Core.Abstractions.Controls;
+using HolidayCountdown.Models;
 using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
@@ -35,19 +36,7 @@ public class GreetingSettingsPage : SettingsPageBase
             p.Children.Add(R("放学后文案", "", Tx(_svc.Settings.AfterSchoolEndText, 200, v => _svc.Settings.AfterSchoolEndText = v)));
             p.Children.Add(R("晚修文案", "", Tx(_svc.Settings.SundayEveningStudyText, 200, v => _svc.Settings.SundayEveningStudyText = v)));
         })));
-        s.Children.Add(C("时段文案", new StackPanel { Spacing = 8 }.Also(p =>
-        {
-            foreach (var kv in _svc.Settings.HourlyGreetings.OrderBy(x => x.Key))
-            {
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-                row.Children.Add(new TextBlock { Text = $"{kv.Key:D2}:00", Width = 50, VerticalAlignment = VerticalAlignment.Center });
-                var box = new TextBox { Text = kv.Value, Width = 280 };
-                var key = kv.Key;
-                box.LostFocus += (a, b) => { _svc.Settings.HourlyGreetings[key] = box.Text; };
-                row.Children.Add(box);
-                p.Children.Add(row);
-            }
-        })));
+        s.Children.Add(C("时段文案", BuildTimeSlotPanel()));
         s.Children.Add(C("特殊日期", new StackPanel { Spacing = 8 }.Also(p =>
         {
             p.Children.Add(R("周一早晨", "", Tx(_svc.Settings.SpecialGreetings.TryGetValue("MondayMorning", out var mm) ? mm : "", 280, v => _svc.Settings.SpecialGreetings["MondayMorning"] = v)));
@@ -57,6 +46,53 @@ public class GreetingSettingsPage : SettingsPageBase
         })));
         s.Children.Add(Sv());
         return new ScrollViewer { Content = s };
+    }
+
+    StackPanel BuildTimeSlotPanel()
+    {
+        var panel = new StackPanel { Spacing = 8 };
+        var listPanel = new StackPanel { Spacing = 6 };
+
+        void RefreshList()
+        {
+            listPanel.Children.Clear();
+            foreach (var slot in _svc.Settings.TimeSlotGreetings.OrderBy(x => x.StartHour * 60 + x.StartMinute))
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+                var startBox = Tx($"{slot.StartHour:D2}:{slot.StartMinute:D2}", 50, v =>
+                {
+                    if (TimeSpan.TryParse(v, out var ts)) { slot.StartHour = ts.Hours; slot.StartMinute = ts.Minutes; }
+                });
+                var endBox = Tx($"{slot.EndHour:D2}:{slot.EndMinute:D2}", 50, v =>
+                {
+                    if (TimeSpan.TryParse(v, out var ts)) { slot.EndHour = ts.Hours; slot.EndMinute = ts.Minutes; }
+                });
+                var textBox = Tx(slot.Text, 200, v => slot.Text = v);
+                var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2) };
+                delBtn.Click += (a, e) => { _svc.Settings.TimeSlotGreetings.Remove(slot); RefreshList(); };
+
+                row.Children.Add(new TextBlock { Text = "从", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
+                row.Children.Add(startBox);
+                row.Children.Add(new TextBlock { Text = "到", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
+                row.Children.Add(endBox);
+                row.Children.Add(textBox);
+                row.Children.Add(delBtn);
+                listPanel.Children.Add(row);
+            }
+        }
+
+        RefreshList();
+        panel.Children.Add(listPanel);
+
+        var addBtn = new Button { Content = "+ 添加时段", Padding = new Thickness(12, 4), HorizontalAlignment = HorizontalAlignment.Left };
+        addBtn.Click += (a, e) =>
+        {
+            _svc.Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 8, StartMinute = 0, EndHour = 12, EndMinute = 0, Text = "" });
+            RefreshList();
+        };
+        panel.Children.Add(addBtn);
+
+        return panel;
     }
 
     static TextBlock H(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };

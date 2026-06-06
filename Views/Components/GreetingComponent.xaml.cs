@@ -35,16 +35,30 @@ public class GreetingComponent : ComponentBase
     {
         if (_svc == null || !_svc.Settings.ShowGreeting) { _txt.Text = ""; return; }
         var now = DateTime.Now; var s = _svc.Settings;
-        if (s.ShowSundayEveningStudy && now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 17 && now.Hour <= 21) { _txt.Text = s.SundayEveningStudyText; return; }
-        var se = new TimeSpan(s.SchoolEndHour, s.SchoolEndMinute, 0); var ct = now.TimeOfDay; var rb = se - TimeSpan.FromMinutes(s.SchoolEndReminderMinutes);
-        if (ct >= se) { _txt.Text = s.AfterSchoolEndText; return; }
-        if (ct >= rb) { _txt.Text = $"{s.BeforeSchoolEndText}（还有{(int)(se - ct).TotalMinutes}分钟）"; return; }
-        var key = now.Hour switch { >= 5 and < 8 => 5, >= 8 and < 12 => 8, >= 12 and < 14 => 12, >= 14 and < 17 => 14, >= 17 and < 19 => 17, _ => 19 };
-        if (s.HourlyGreetings.TryGetValue(key, out var g)) { _txt.Text = g; return; }
+
+        // 1. 特殊日期问候（最高优先级）
         if (now.DayOfWeek == DayOfWeek.Monday && now.Hour < 12) { _txt.Text = s.SpecialGreetings.TryGetValue("MondayMorning", out var mm) ? mm : ""; return; }
         if (now.DayOfWeek == DayOfWeek.Wednesday) { _txt.Text = s.SpecialGreetings.TryGetValue("Wednesday", out var wd) ? wd : ""; return; }
         if (now.DayOfWeek == DayOfWeek.Friday && now.Hour >= 12) { _txt.Text = s.SpecialGreetings.TryGetValue("FridayAfternoon", out var fa) ? fa : ""; return; }
         if (now.DayOfWeek == DayOfWeek.Saturday || now.DayOfWeek == DayOfWeek.Sunday) { _txt.Text = s.SpecialGreetings.TryGetValue("Weekend", out var we) ? we : ""; return; }
+
+        // 2. 周日晚修提醒
+        if (s.ShowSundayEveningStudy && now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 17 && now.Hour <= 21) { _txt.Text = s.SundayEveningStudyText; return; }
+
+        // 3. 放学提醒
+        var se = new TimeSpan(s.SchoolEndHour, s.SchoolEndMinute, 0); var ct = now.TimeOfDay; var rb = se - TimeSpan.FromMinutes(s.SchoolEndReminderMinutes);
+        if (ct >= se) { _txt.Text = s.AfterSchoolEndText; return; }
+        if (ct >= rb) { _txt.Text = $"{s.BeforeSchoolEndText}（还有{(int)(se - ct).TotalMinutes}分钟）"; return; }
+
+        // 4. 时段问候（最低优先级）
+        var slot = s.TimeSlotGreetings.FirstOrDefault(ts =>
+        {
+            var start = new TimeSpan(ts.StartHour, ts.StartMinute, 0);
+            var end = new TimeSpan(ts.EndHour, ts.EndMinute, 0);
+            return ct >= start && ct < end;
+        });
+        if (slot != null) { _txt.Text = slot.Text; return; }
+
         _txt.Text = "";
     }
 }
