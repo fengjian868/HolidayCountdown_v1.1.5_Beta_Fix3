@@ -57,7 +57,7 @@ public class LunarSettingsPage : SettingsPageBase
             // 自定义模板输入
             p.Children.Add(new TextBlock { Text = "或自定义:", FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 8, 0, 0) });
             var templateBox = new TextBox { Text = _svc.Settings.LunarDateTemplate, Width = 300 };
-            templateBox.LostFocus += (a, b) => _svc.Settings.LunarDateTemplate = templateBox.Text ?? "";
+            templateBox.TextChanged += (a, b) => _svc.Settings.LunarDateTemplate = templateBox.Text ?? "";
             p.Children.Add(templateBox);
             
             p.Children.Add(new TextBlock { Text = "可用变量: {gzYear} 干支年 | {IMonthCn} 农历月 | {IDayCn} 农历日 | {Animal} 生肖 | {Term} 节气", Opacity = 0.5, FontSize = 11, TextWrapping = Avalonia.Media.TextWrapping.Wrap });
@@ -87,6 +87,6 @@ public class LunarSettingsPage : SettingsPageBase
     }
     static Control Row(string l, string d, Control c) { var g = new Grid { ColumnDefinitions = new ColumnDefinitions("120 *") }; var left = new StackPanel { VerticalAlignment = VerticalAlignment.Center }; left.Children.Add(new TextBlock { Text = l, FontWeight = FontWeight.SemiBold }); if (!string.IsNullOrEmpty(d)) left.Children.Add(new TextBlock { Text = d, Opacity = 0.5, FontSize = 11 }); Grid.SetColumn(left, 0); Grid.SetColumn(c, 1); c.VerticalAlignment = VerticalAlignment.Center; g.Children.Add(left); g.Children.Add(c); return g; }
     static ToggleSwitch Toggle(bool v, Action<bool> cb) { var t = new ToggleSwitch { IsChecked = v, OnContent = "开", OffContent = "关" }; t.IsCheckedChanged += (a, b) => cb(t.IsChecked == true); return t; }
-    static TextBox Tx(string v, int w, Action<string> cb) { var t = new TextBox { Text = v, Width = w }; t.LostFocus += (a, b) => cb(t.Text ?? ""); return t; }
+    static TextBox Tx(string v, int w, Action<string> cb) { var t = new TextBox { Text = v, Width = w }; t.TextChanged += (a, b) => cb(t.Text ?? ""); return t; }
     Button SaveBtn() { var b = new Button { Content = "💾 保存", Padding = new Thickness(20, 8) }; b.Click += (a, e) => { _svc.SaveSettings(); b.Content = "✅ 已保存"; }; return b; }
 }

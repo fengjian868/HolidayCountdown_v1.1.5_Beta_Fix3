@@ -42,7 +42,7 @@ public class WeatherSettingsPage : SettingsPageBase
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                 var keyBox = new TextBox { Text = kv.Key, Width = 80, IsReadOnly = kv.Key == "默认" };
-                keyBox.LostFocus += (a, b) =>
+                keyBox.TextChanged += (a, b) =>
                 {
                     if (kv.Key == "默认") return;
                     var newKey = keyBox.Text ?? "";
@@ -53,7 +53,7 @@ public class WeatherSettingsPage : SettingsPageBase
                     }
                 };
                 var textBox = new TextBox { Text = kv.Value, Width = 250 };
-                textBox.LostFocus += (a, b) => _svc.Settings.WeatherGreetings[kv.Key] = textBox.Text ?? "";
+                textBox.TextChanged += (a, b) => _svc.Settings.WeatherGreetings[kv.Key] = textBox.Text ?? "";
                 var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2), IsVisible = kv.Key != "默认" };
                 delBtn.Click += (a, e) => { _svc.Settings.WeatherGreetings.Remove(kv.Key); RefreshList(); };
 

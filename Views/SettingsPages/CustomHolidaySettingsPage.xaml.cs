@@ -46,7 +46,7 @@ public class CustomHolidaySettingsPage : SettingsPageBase
     Control MakeItem(CustomHoliday h, StackPanel parent)
     {
         var g = new Grid { ColumnDefinitions = new ColumnDefinitions("120 100 80 Auto Auto") };
-        var n = new TextBox { Text = h.Name, Margin = new Thickness(0, 0, 8, 0) }; n.LostFocus += (a, b) => h.Name = n.Text ?? ""; Grid.SetColumn(n, 0);
+        var n = new TextBox { Text = h.Name, Margin = new Thickness(0, 0, 8, 0) }; n.TextChanged += (a, b) => h.Name = n.Text ?? ""; Grid.SetColumn(n, 0);
         // 显示月-日
         var dateText = new TextBlock { Text = $"{h.Date.Month}月{h.Date.Day}日", VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 8, 0) };
         Grid.SetColumn(dateText, 1);
