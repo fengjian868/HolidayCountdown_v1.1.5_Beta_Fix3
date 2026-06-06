@@ -32,9 +32,11 @@ public class LunarDateComponent : ComponentBase
     {
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ClassIsland", "Plugins", "HolidayCountdown");
         Directory.CreateDirectory(dir); _cache = Path.Combine(dir, "lunar_cache.json");
-        var panel = new Grid { ColumnDefinitions = new ColumnDefinitions("*"), VerticalAlignment = VerticalAlignment.Center };
+        var panel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
         _txt = new TextBlock { VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.85 };
-        Grid.SetColumn(_txt, 0); panel.Children.Add(_txt); Content = panel;
+        panel.Children.Add(new TextBlock { Text = "\u2630", FontSize = 14, VerticalAlignment = VerticalAlignment.Center, Opacity = 0.7 });
+        panel.Children.Add(_txt);
+        Content = panel;
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMinutes(30) }; _timer.Tick += (s, e) => _ = RefreshAsync(); _timer.Start();
         Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); _ = RefreshAsync(); });
     }
@@ -72,7 +74,10 @@ public class LunarDateComponent : ComponentBase
     string Format(LunarInfo i)
     {
         var t = _svc?.Settings.LunarDateTemplate ?? "{gzYear} {IMonthCn}{IDayCn} {Animal}";
-        return t.Replace("{gzYear}", i.gzYear).Replace("{IMonthCn}", i.IMonthCn).Replace("{IDayCn}", i.IDayCn).Replace("{Animal}", i.Animal).Replace("{Term}", string.IsNullOrEmpty(i.Term) ? "" : $"({i.Term})").Replace("{lunarDate}", i.lunarDate);
+        var result = t.Replace("{gzYear}", i.gzYear).Replace("{IMonthCn}", i.IMonthCn).Replace("{IDayCn}", i.IDayCn).Replace("{Animal}", i.Animal).Replace("{Term}", string.IsNullOrEmpty(i.Term) ? "" : $" · {i.Term}").Replace("{lunarDate}", i.lunarDate);
+        // 清理多余空格，让排版更紧凑
+        while (result.Contains("  ")) result = result.Replace("  ", " ");
+        return result.Trim();
     }
     void UpdateText(string t) => Dispatcher.UIThread.Post(() => _txt.Text = t);
 }

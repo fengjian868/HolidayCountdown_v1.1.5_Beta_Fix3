@@ -36,20 +36,66 @@ public class VacationCountdownComponent : ComponentBase
         if (_svc == null || !_svc.Settings.ShowVacationCountdown) return;
         var now = DateTime.Now; var s = _svc.Settings;
         var targets = new[] { ("暑假", s.SummerStart, s.SummerEnd), ("寒假", s.WinterStart, s.WinterEnd) };
-        foreach (var (name, start, end) in targets)
+        
+        // 找出最近的一个假期
+        var nearest = targets
+            .Select(t =>
+            {
+                var (name, start, end) = t;
+                if (now.Date < start.Date)
+                    return new { Name = name, Start = start, End = end, Days = (start.Date - now.Date).Days, IsActive = false };
+                else if (now.Date >= start.Date && now.Date <= end.Date)
+                    return new { Name = name, Start = start, End = end, Days = (end.Date - now.Date).Days, IsActive = true };
+                else
+                    return null;
+            })
+            .Where(x => x != null)
+            .OrderBy(x => x!.Days)
+            .FirstOrDefault();
+
+        if (nearest != null)
         {
-            if (now.Date < start.Date)
+            var weeks = nearest.Days / 7; var days = nearest.Days % 7;
+            if (nearest.IsActive)
             {
-                var span = start.Date - now.Date;
-                var weeks = span.Days / 7; var days = span.Days % 7;
-                _main.Children.Add(new TextBlock { Text = $"距离{name}还有 {weeks} 周 {days} 天", HorizontalAlignment = HorizontalAlignment.Center, Foreground = new SolidColorBrush(Color.Parse("#FF9800")) });
+                _main.Children.Add(new TextBlock 
+                { 
+                    Text = $"{nearest.Name}进行中", 
+                    HorizontalAlignment = HorizontalAlignment.Center, 
+                    Foreground = new SolidColorBrush(Color.Parse("#4CAF50")),
+                    FontWeight = FontWeight.SemiBold,
+                    Margin = new Thickness(0, 2, 0, 2)
+                });
+                _main.Children.Add(new TextBlock 
+                { 
+                    Text = $"剩余 {weeks} 周 {days} 天", 
+                    HorizontalAlignment = HorizontalAlignment.Center, 
+                    Foreground = new SolidColorBrush(Color.Parse("#4CAF50")),
+                    Margin = new Thickness(0, 2, 0, 2)
+                });
             }
-            else if (now.Date >= start.Date && now.Date <= end.Date)
+            else
             {
-                var span = end.Date - now.Date; var weeks = span.Days / 7; var days = span.Days % 7;
-                _main.Children.Add(new TextBlock { Text = $"{name}进行中，剩余 {weeks} 周 {days} 天", HorizontalAlignment = HorizontalAlignment.Center, Foreground = new SolidColorBrush(Color.Parse("#4CAF50")) });
+                _main.Children.Add(new TextBlock 
+                { 
+                    Text = $"距离{nearest.Name}还有", 
+                    HorizontalAlignment = HorizontalAlignment.Center, 
+                    Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
+                    FontWeight = FontWeight.SemiBold,
+                    Margin = new Thickness(0, 2, 0, 2)
+                });
+                _main.Children.Add(new TextBlock 
+                { 
+                    Text = $"{weeks} 周 {days} 天", 
+                    HorizontalAlignment = HorizontalAlignment.Center, 
+                    Foreground = new SolidColorBrush(Color.Parse("#FF9800")),
+                    Margin = new Thickness(0, 2, 0, 2)
+                });
             }
         }
-        if (_main.Children.Count == 0) _main.Children.Add(new TextBlock { Text = "暂无寒暑假安排", HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.5 });
+        else
+        {
+            _main.Children.Add(new TextBlock { Text = "暂无寒暑假安排", HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.5 });
+        }
     }
 }

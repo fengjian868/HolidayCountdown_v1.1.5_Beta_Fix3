@@ -18,7 +18,7 @@ public class PluginSettings
     public bool ShowProgressRing { get; set; } = true;
     public bool AutoHolidayColor { get; set; } = true;
     public bool AutoNextHoliday { get; set; } = true;
-    public bool MergeGreeting { get; set; } = true;
+    public bool MergeGreeting { get; set; } = false;
     public bool ShowYearRatio { get; set; } = true;
     public Dictionary<string, string> HolidayColors { get; set; } = new();
     public List<string> DisabledHolidays { get; set; } = new();

@@ -39,14 +39,20 @@ public class HolidaySettingsPage : SettingsPageBase
         s.Children.Add(Card("颜色", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(Row("自动节日颜色", "根据节日自动匹配颜色", Toggle(_svc.Settings.AutoHolidayColor, v => _svc.Settings.AutoHolidayColor = v)));
-            p.Children.Add(new TextBlock { Text = "自定义颜色（留空使用默认）", FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#2196F3")) });
+            p.Children.Add(new TextBlock { Text = "自定义颜色", FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#2196F3")) });
             foreach (var kv in _svc.Settings.HolidayColors.ToList())
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
                 row.Children.Add(new TextBlock { Text = kv.Key, Width = 80, VerticalAlignment = VerticalAlignment.Center });
-                var box = new TextBox { Text = kv.Value, Width = 100 };
-                box.LostFocus += (a, b) => { _svc.Settings.HolidayColors[kv.Key] = box.Text; _svc.SaveSettings(); };
-                row.Children.Add(box);
+                var picker = new ColorPicker 
+                { 
+                    Width = 40, 
+                    Height = 28,
+                    Color = TryParseColor(kv.Value)
+                };
+                var key = kv.Key;
+                picker.ColorChanged += (a, b) => { _svc.Settings.HolidayColors[key] = picker.Color.ToString(); _svc.SaveSettings(); };
+                row.Children.Add(picker);
                 p.Children.Add(row);
             }
         })));
@@ -79,6 +85,11 @@ public class HolidaySettingsPage : SettingsPageBase
     static ToggleSwitch Toggle(bool v, Action<bool> cb) { var t = new ToggleSwitch { IsChecked = v, OnContent = "开", OffContent = "关" }; t.IsCheckedChanged += (a, b) => { cb(t.IsChecked == true); }; return t; }
     static ComboBox Combo(string[] items, int sel, Action<int> cb) { var c = new ComboBox { Width = 80, SelectedIndex = sel }; foreach (var i in items) c.Items.Add(i); c.SelectionChanged += (a, b) => cb(c.SelectedIndex); return c; }
     static TextBox Num(int v, int min, int max, Action<int> cb) { var t = new TextBox { Text = v.ToString(), Width = 60 }; t.LostFocus += (a, b) => { if (int.TryParse(t.Text, out var n)) { n = Math.Max(min, Math.Min(max, n)); t.Text = n.ToString(); cb(n); } }; return t; }
+    static Avalonia.Media.Color TryParseColor(string hex)
+    {
+        try { return Avalonia.Media.Color.Parse(hex); }
+        catch { return Avalonia.Media.Color.Parse("#2196F3"); }
+    }
     Button SaveBtn() { var b = new Button { Content = "💾 保存", Padding = new Thickness(20, 8) }; b.Click += (a, e) => { _svc.SaveSettings(); b.Content = "✅ 已保存"; }; return b; }
 }
 
