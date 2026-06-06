@@ -49,8 +49,19 @@ public class WeatherGreetingComponent : ComponentBase
         // 通过 IWeatherService.GetWeatherTextByCode 获取天气文本
         var weatherText = GetWeatherTextByCode(weatherCode);
 
-        // 从设置中查找匹配的问候语
-        var greet = GetWeatherGreeting(weatherText);
+        // 使用设置中的自定义问候语匹配
+        var greet = "";
+        if (!string.IsNullOrEmpty(weatherText))
+        {
+            // 按关键词匹配，优先匹配最长的关键词
+            var match = _svc.Settings.WeatherGreetings
+                .Where(kv => kv.Key != "默认" && weatherText.Contains(kv.Key))
+                .OrderByDescending(kv => kv.Key.Length)
+                .FirstOrDefault();
+            greet = match.Value ?? "";
+            if (string.IsNullOrEmpty(greet) && _svc.Settings.WeatherGreetings.TryGetValue("默认", out var def))
+                greet = def.Replace("{weather}", weatherText);
+        }
 
         // 预警简短显示
         if (!string.IsNullOrEmpty(warning))
