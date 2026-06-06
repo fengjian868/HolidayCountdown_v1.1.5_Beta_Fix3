@@ -253,7 +253,7 @@ public class HolidayService
         allHolidays.AddRange(custom);
         var totalHolidayDays = allHolidays.Sum(h => h.DaysOff);
         var remaining = allHolidays.Where(h => h.Date >= DateTime.Now.Date).Sum(h => h.DaysOff);
-        return totalHolidayDays > 0 ? remaining / totalHolidayDays : 0;
+        return totalHolidayDays > 0 ? (double)remaining / totalHolidayDays : 0;
     }
 
     public async Task<LunarInfo?> GetLunarAsync()
