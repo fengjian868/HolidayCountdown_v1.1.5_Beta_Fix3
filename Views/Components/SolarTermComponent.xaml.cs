@@ -55,7 +55,7 @@ public class SolarTermComponent : ComponentBase
         if (prev != null) { var t = (next.Date - prev.Date).TotalDays; var pass = (DateTime.Now - prev.Date).TotalDays; p = Math.Max(0, Math.Min(1, pass / t)); }
         else p = Math.Max(0, Math.Min(1, 1 - days / 15.0));
         grid.Children.Add(new Arc { Width = size, Height = size, StartAngle = -90, SweepAngle = p * 360, Stroke = new SolidColorBrush(color), StrokeThickness = 2.5, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center });
-        grid.Children.Add(new TextBlock { Text = days > 0 ? days.ToString() : "!", FontSize = 9, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(color), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center });
+        grid.Children.Add(new TextBlock { Text = next.Date.Day.ToString(), FontSize = 9, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(color), VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center });
         _main.Children.Add(grid);
 
         _main.Children.Add(new TextBlock { Text = "🌿", FontSize = 13, VerticalAlignment = VerticalAlignment.Center });
