@@ -21,7 +21,7 @@ public class HolidaySettingsPage : SettingsPageBase
     {
         var s = new StackPanel { Spacing = 14, Margin = new Thickness(24, 16) };
         s.Children.Add(Header("📅 节假日倒计时设置"));
-        s.Children.Add(Card("显示", new StackPanel { Spacing = 10 }.Also(p =>
+        s.Children.Add(Expander("显示", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(Row("显示数量", "同时显示多少个节日", Combo(new[]{"1","3","5"}, _svc.Settings.DisplayCount == 1 ? 0 : _svc.Settings.DisplayCount == 3 ? 1 : 2, v => _svc.Settings.DisplayCount = v == 0 ? 1 : v == 1 ? 3 : 5)));
             p.Children.Add(Row("显示放假天数", "如：春节（放7天）", Toggle(_svc.Settings.ShowDaysOff, v => _svc.Settings.ShowDaysOff = v)));
@@ -31,12 +31,12 @@ public class HolidaySettingsPage : SettingsPageBase
             p.Children.Add(Row("显示假期占比", "当年剩余假期百分比", Toggle(_svc.Settings.ShowYearRatio, v => _svc.Settings.ShowYearRatio = v)));
             p.Children.Add(Row("周末倒计时", "列表中显示周六周日", Toggle(_svc.Settings.ShowWeekendCountdown, v => _svc.Settings.ShowWeekendCountdown = v)));
         })));
-        s.Children.Add(Card("调休", new StackPanel { Spacing = 10 }.Also(p =>
+        s.Children.Add(Expander("调休", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(Row("调休提醒", "周末调休上课提前提醒", Toggle(_svc.Settings.ShowWorkdayReminder, v => _svc.Settings.ShowWorkdayReminder = v)));
             p.Children.Add(Row("提前提醒天数", "调休提醒提前多少天显示", Num(_svc.Settings.WorkdayReminderDays, 1, 30, v => _svc.Settings.WorkdayReminderDays = v)));
         })));
-        s.Children.Add(Card("颜色", new StackPanel { Spacing = 10 }.Also(p =>
+        s.Children.Add(Expander("颜色", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(Row("自动节日颜色", "根据节日自动匹配颜色", Toggle(_svc.Settings.AutoHolidayColor, v => _svc.Settings.AutoHolidayColor = v)));
             p.Children.Add(new TextBlock { Text = "自定义颜色", FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#2196F3")) });
@@ -56,7 +56,7 @@ public class HolidaySettingsPage : SettingsPageBase
                 p.Children.Add(row);
             }
         })));
-        s.Children.Add(Card("节日开关", new StackPanel { Spacing = 10 }.Also(p =>
+        s.Children.Add(Expander("节日开关", new StackPanel { Spacing = 10 }.Also(p =>
         {
             var all = new[]{"元旦","春节","清明节","劳动节","端午节","中秋节","国庆节"};
             foreach (var name in all)
@@ -72,7 +72,23 @@ public class HolidaySettingsPage : SettingsPageBase
     }
 
     static TextBlock Header(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };
-    static Border Card(string title, Control content) => new() { Child = new StackPanel { Spacing = 10 }.Also(s => { s.Children.Add(new TextBlock { Text = title, FontWeight = FontWeight.SemiBold, Foreground = new SolidColorBrush(Color.Parse("#2196F3")) }); s.Children.Add(content); }), Background = new SolidColorBrush(Color.Parse("#0DFFFFFF")), CornerRadius = new CornerRadius(12), Padding = new Thickness(16), BorderBrush = new SolidColorBrush(Color.Parse("#1AFFFFFF")), BorderThickness = new Thickness(1), Margin = new Thickness(0, 4) };
+    static Border Expander(string title, Control content)
+    {
+        var header = new Button { Content = $"▶ {title}", HorizontalAlignment = HorizontalAlignment.Stretch, HorizontalContentAlignment = HorizontalAlignment.Left, Padding = new Thickness(12, 8) };
+        var panel = new StackPanel { Spacing = 10, IsVisible = false };
+        panel.Children.Add(content);
+        var border = new Border { Background = new SolidColorBrush(Color.Parse("#0DFFFFFF")), CornerRadius = new CornerRadius(12), Padding = new Thickness(16), BorderBrush = new SolidColorBrush(Color.Parse("#1AFFFFFF")), BorderThickness = new Thickness(1), Margin = new Thickness(0, 4) };
+        var container = new StackPanel { Spacing = 4 };
+        container.Children.Add(header);
+        container.Children.Add(panel);
+        border.Child = container;
+        header.Click += (a, e) =>
+        {
+            panel.IsVisible = !panel.IsVisible;
+            header.Content = panel.IsVisible ? $"▼ {title}" : $"▶ {title}";
+        };
+        return border;
+    }
     static Control Row(string label, string desc, Control ctrl)
     {
         var g = new Grid { ColumnDefinitions = new ColumnDefinitions("* Auto") };

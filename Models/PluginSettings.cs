@@ -27,6 +27,7 @@ public class PluginSettings
     public bool ShowGreeting { get; set; } = true;
     public bool GreetingOnline { get; set; } = true;
     public List<TimeSlotGreeting> TimeSlotGreetings { get; set; } = new();
+    public List<SpecialDateGreeting> SpecialDateGreetings { get; set; } = new();
     public Dictionary<string, string> SpecialGreetings { get; set; } = new();
     public int SchoolEndHour { get; set; } = 17;
     public int SchoolEndMinute { get; set; } = 30;
@@ -75,4 +76,16 @@ public class TimeSlotGreeting
     public int EndHour { get; set; }
     public int EndMinute { get; set; }
     public string Text { get; set; } = "";
+}
+
+public class SpecialDateGreeting
+{
+    public string Name { get; set; } = "";
+    public int DayOfWeek { get; set; } = 1; // 1=周一, 7=周日
+    public int StartHour { get; set; } = 0;
+    public int StartMinute { get; set; } = 0;
+    public int EndHour { get; set; } = 23;
+    public int EndMinute { get; set; } = 59;
+    public string Text { get; set; } = "";
+    public bool Enabled { get; set; } = true;
 }

@@ -134,10 +134,15 @@ public class CombinedComponent : ComponentBase
         var ct = now.TimeOfDay;
 
         // 1. 特殊日期问候（最高优先级）
-        if (now.DayOfWeek == DayOfWeek.Monday && now.Hour < 12) return s.SpecialGreetings.TryGetValue("MondayMorning", out var mm) ? mm : "";
-        if (now.DayOfWeek == DayOfWeek.Wednesday) return s.SpecialGreetings.TryGetValue("Wednesday", out var wd) ? wd : "";
-        if (now.DayOfWeek == DayOfWeek.Friday && now.Hour >= 12) return s.SpecialGreetings.TryGetValue("FridayAfternoon", out var fa) ? fa : "";
-        if (now.DayOfWeek == DayOfWeek.Saturday || now.DayOfWeek == DayOfWeek.Sunday) return s.SpecialGreetings.TryGetValue("Weekend", out var we) ? we : "";
+        var special = s.SpecialDateGreetings.FirstOrDefault(sg =>
+        {
+            if (!sg.Enabled) return false;
+            if ((int)now.DayOfWeek == 0 ? sg.DayOfWeek != 7 : (int)now.DayOfWeek != sg.DayOfWeek) return false;
+            var start = new TimeSpan(sg.StartHour, sg.StartMinute, 0);
+            var end = new TimeSpan(sg.EndHour, sg.EndMinute, 0);
+            return ct >= start && ct < end;
+        });
+        if (special != null) return special.Text;
 
         // 2. 周日晚修提醒
         if (s.ShowSundayEveningStudy && now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 17 && now.Hour <= 21)

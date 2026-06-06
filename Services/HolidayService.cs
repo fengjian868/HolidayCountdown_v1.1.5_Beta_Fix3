@@ -68,12 +68,13 @@ public class HolidayService
             Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 17, StartMinute = 0, EndHour = 19, EndMinute = 0, Text = "再坚持一下就能run了！" });
             Settings.TimeSlotGreetings.Add(new TimeSlotGreeting { StartHour = 19, StartMinute = 0, EndHour = 23, EndMinute = 59, Text = "夜猫子模式启动 🦉" });
         }
-        if (Settings.SpecialGreetings.Count == 0)
+        if (Settings.SpecialDateGreetings.Count == 0)
         {
-            Settings.SpecialGreetings["MondayMorning"] = "本周还有 5 天到周末 😭";
-            Settings.SpecialGreetings["Wednesday"] = "周三了，过半了！📈";
-            Settings.SpecialGreetings["FridayAfternoon"] = "周五周五，敲锣打鼓 🥁";
-            Settings.SpecialGreetings["Weekend"] = "享受假期吧";
+            Settings.SpecialDateGreetings.Add(new SpecialDateGreeting { Name = "周一早晨", DayOfWeek = 1, StartHour = 0, StartMinute = 0, EndHour = 12, EndMinute = 0, Text = "本周还有 5 天到周末 😭" });
+            Settings.SpecialDateGreetings.Add(new SpecialDateGreeting { Name = "周三", DayOfWeek = 3, StartHour = 0, StartMinute = 0, EndHour = 23, EndMinute = 59, Text = "周三了，过半了！📈" });
+            Settings.SpecialDateGreetings.Add(new SpecialDateGreeting { Name = "周五下午", DayOfWeek = 5, StartHour = 12, StartMinute = 0, EndHour = 23, EndMinute = 59, Text = "周五周五，敲锣打鼓 🥁" });
+            Settings.SpecialDateGreetings.Add(new SpecialDateGreeting { Name = "周末", DayOfWeek = 6, StartHour = 0, StartMinute = 0, EndHour = 23, EndMinute = 59, Text = "享受假期吧" });
+            Settings.SpecialDateGreetings.Add(new SpecialDateGreeting { Name = "周末", DayOfWeek = 7, StartHour = 0, StartMinute = 0, EndHour = 23, EndMinute = 59, Text = "享受假期吧" });
         }
         if (Settings.HolidayColors.Count == 0)
         {
@@ -304,13 +305,31 @@ public class HolidayService
                 if (!string.IsNullOrEmpty(text))
                 {
                     var now = DateTime.Now;
+                    var ct = now.TimeOfDay;
+
+                    // 如果当前处于特殊日期时段内，不刷新（特殊日期优先且固定）
+                    var inSpecial = Settings.SpecialDateGreetings.Any(sg =>
+                    {
+                        if (!sg.Enabled) return false;
+                        if ((int)now.DayOfWeek == 0 ? sg.DayOfWeek != 7 : (int)now.DayOfWeek != sg.DayOfWeek) return false;
+                        var start = new TimeSpan(sg.StartHour, sg.StartMinute, 0);
+                        var end = new TimeSpan(sg.EndHour, sg.EndMinute, 0);
+                        return ct >= start && ct < end;
+                    });
+                    if (inSpecial) return;
+
+                    // 只刷新当前所处的时间段问候语，且保存到设置
                     var slot = Settings.TimeSlotGreetings.FirstOrDefault(s =>
                     {
                         var start = new TimeSpan(s.StartHour, s.StartMinute, 0);
                         var end = new TimeSpan(s.EndHour, s.EndMinute, 0);
-                        return now.TimeOfDay >= start && now.TimeOfDay < end;
+                        return ct >= start && ct < end;
                     });
-                    if (slot != null) slot.Text = text;
+                    if (slot != null)
+                    {
+                        slot.Text = text;
+                        SaveSettings();
+                    }
                 }
             }
         }
