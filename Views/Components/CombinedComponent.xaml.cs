@@ -1,0 +1,201 @@
+using System;
+using System.Linq;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Avalonia.Threading;
+using ClassIsland.Core.Abstractions.Controls;
+using ClassIsland.Core.Attributes;
+using HolidayCountdown.Models;
+using HolidayCountdown.Services;
+
+namespace HolidayCountdown.Views.Components;
+
+[ComponentInfo(
+    "F1E2D3C4-B5A6-7890-1234-567890ABCDEF",
+    "节假日+问候语",
+    "\uE8F5",
+    "合并显示节假日倒计时和时段问候语，可配置是否分开"
+)]
+public class CombinedComponent : ComponentBase
+{
+    private HolidayService _svc = null!;
+    private DispatcherTimer _timer = null!;
+    private StackPanel _main = null!;
+
+    public CombinedComponent()
+    {
+        _main = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, VerticalAlignment = VerticalAlignment.Center, HorizontalAlignment = HorizontalAlignment.Center };
+        Content = _main;
+        Dispatcher.UIThread.Post(() => { _svc = new HolidayService(); _timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) }; _timer.Tick += (s, e) => Update(); _timer.Start(); Update(); });
+    }
+
+    void Update()
+    {
+        _main.Children.Clear();
+        if (_svc == null) return;
+
+        // 问候语行
+        var greet = GetGreetingText();
+        if (!string.IsNullOrEmpty(greet))
+        {
+            _main.Children.Add(new TextBlock
+            {
+                Text = greet,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Opacity = 0.9
+            });
+        }
+
+        // 调休提醒
+        var wr = _svc.GetNextWorkdayReminder();
+        if (wr != null)
+        {
+            var rd = (int)(wr.Date.Date - DateTime.Now.Date).TotalDays;
+            if (rd <= _svc.Settings.WorkdayReminderDays)
+            {
+                _main.Children.Add(new TextBlock
+                {
+                    Text = rd == 0 ? "⚠️ 明天调休上课" : $"⚠️ {rd}天后调休上课",
+                    Foreground = new SolidColorBrush(Colors.Orange),
+                    FontWeight = FontWeight.SemiBold,
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    FontSize = 11
+                });
+            }
+        }
+
+        // 节假日横向排列
+        var hs = _svc.GetNextHolidays(_svc.Settings.DisplayCount);
+        if (hs.Count > 0)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+            for (int i = 0; i < hs.Count; i++)
+            {
+                var h = hs[i];
+                var days = (int)(h.Date.Date - DateTime.Now.Date).TotalDays;
+                var color = _svc.Settings.AutoHolidayColor ? _svc.GetHolidayColor(h.Name) : Color.Parse("#2196F3");
+
+                var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, VerticalAlignment = VerticalAlignment.Center };
+
+                if (_svc.Settings.ShowProgressRing && i == 0)
+                {
+                    var prev = _svc.GetPrevHoliday();
+                    var ring = CreateArcRing(days, prev, h, color);
+                    item.Children.Add(ring);
+                }
+                else
+                {
+                    item.Children.Add(new TextBlock { Text = h.IsCustom ? "🎂" : "📅", VerticalAlignment = VerticalAlignment.Center });
+                }
+
+                item.Children.Add(new TextBlock { Text = h.Name, Foreground = new SolidColorBrush(color), FontWeight = FontWeight.SemiBold, VerticalAlignment = VerticalAlignment.Center });
+                item.Children.Add(new TextBlock
+                {
+                    Text = days == 0 ? "就是今天！" : $"还有 {days} 天",
+                    VerticalAlignment = VerticalAlignment.Center,
+                    Opacity = 0.8
+                });
+
+                if (_svc.Settings.ShowDaysOff && h.DaysOff > 1 && days >= 0)
+                    ((TextBlock)item.Children[item.Children.Count - 1]).Text += $"（放{h.DaysOff}天）";
+
+                row.Children.Add(item);
+            }
+            _main.Children.Add(row);
+        }
+        else
+        {
+            _main.Children.Add(new TextBlock { Text = "暂无节假日", HorizontalAlignment = HorizontalAlignment.Center, Opacity = 0.5 });
+        }
+
+        // 放假占比
+        if (_svc.Settings.ShowYearRatio)
+        {
+            var ratio = _svc.GetYearRatio();
+            _main.Children.Add(new TextBlock
+            {
+                Text = $"当年假期剩余 {ratio:P0}",
+                HorizontalAlignment = HorizontalAlignment.Center,
+                FontSize = 10,
+                Opacity = 0.6
+            });
+        }
+    }
+
+    string GetGreetingText()
+    {
+        if (!_svc.Settings.ShowGreeting) return "";
+        var now = DateTime.Now;
+        var s = _svc.Settings;
+
+        if (s.ShowSundayEveningStudy && now.DayOfWeek == DayOfWeek.Sunday && now.Hour >= 17 && now.Hour <= 21)
+            return s.SundayEveningStudyText;
+
+        var se = new TimeSpan(s.SchoolEndHour, s.SchoolEndMinute, 0);
+        var ct = now.TimeOfDay;
+        var rb = se - TimeSpan.FromMinutes(s.SchoolEndReminderMinutes);
+        if (ct >= se) return s.AfterSchoolEndText;
+        if (ct >= rb) return $"{s.BeforeSchoolEndText}（还有{(int)(se - ct).TotalMinutes}分钟）";
+
+        var key = now.Hour switch { >= 5 and < 8 => 5, >= 8 and < 12 => 8, >= 12 and < 14 => 12, >= 14 and < 17 => 14, >= 17 and < 19 => 17, _ => 19 };
+        if (s.HourlyGreetings.TryGetValue(key, out var g)) return g;
+
+        if (now.DayOfWeek == DayOfWeek.Monday && now.Hour < 12) return s.SpecialGreetings.TryGetValue("MondayMorning", out var mm) ? mm : "";
+        if (now.DayOfWeek == DayOfWeek.Wednesday) return s.SpecialGreetings.TryGetValue("Wednesday", out var wd) ? wd : "";
+        if (now.DayOfWeek == DayOfWeek.Friday && now.Hour >= 12) return s.SpecialGreetings.TryGetValue("FridayAfternoon", out var fa) ? fa : "";
+        if (now.DayOfWeek == DayOfWeek.Saturday || now.DayOfWeek == DayOfWeek.Sunday) return s.SpecialGreetings.TryGetValue("Weekend", out var we) ? we : "";
+        return "";
+    }
+
+    Control CreateArcRing(int days, Holiday? prev, Holiday next, Color color)
+    {
+        var size = 36.0;
+        var grid = new Grid { Width = size, Height = size, VerticalAlignment = VerticalAlignment.Center };
+
+        // 背景弧
+        grid.Children.Add(new Arc
+        {
+            Width = size, Height = size,
+            StartAngle = -90, SweepAngle = 360,
+            Stroke = new SolidColorBrush(Color.Parse("#20FFFFFF")),
+            StrokeThickness = 3,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        // 进度弧
+        double progress = 0;
+        if (prev != null)
+        {
+            var total = (next.Date - prev.Date).TotalDays;
+            var passed = (DateTime.Now - prev.Date).TotalDays;
+            progress = Math.Max(0, Math.Min(1, passed / total));
+        }
+        else progress = Math.Max(0, Math.Min(1, 1 - days / 30.0));
+
+        grid.Children.Add(new Arc
+        {
+            Width = size, Height = size,
+            StartAngle = -90, SweepAngle = progress * 360,
+            Stroke = new SolidColorBrush(color),
+            StrokeThickness = 3,
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        grid.Children.Add(new TextBlock
+        {
+            Text = days > 0 ? days.ToString() : "!",
+            FontSize = 10, FontWeight = FontWeight.Bold,
+            Foreground = new SolidColorBrush(color),
+            VerticalAlignment = VerticalAlignment.Center,
+            HorizontalAlignment = HorizontalAlignment.Center
+        });
+
+        return grid;
+    }
+}
