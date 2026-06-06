@@ -19,20 +19,19 @@ public class AboutSettingsPage : SettingsPageBase
         s.Children.Add(Expander("插件信息", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(new TextBlock { Text = "节假日倒计时", FontSize = 28, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(Color.Parse("#2196F3")) });
-            p.Children.Add(new TextBlock { Text = "版本: v1.1.5 (Beta测试版)", FontSize = 14, Opacity = 0.7 });
+            p.Children.Add(new TextBlock { Text = "版本: v1.2.0 (正式版)", FontSize = 14, Opacity = 0.7 });
             p.Children.Add(new TextBlock { Text = "作者: fengjian868", FontSize = 14, Opacity = 0.7 });
             p.Children.Add(new TextBlock { Text = "GitHub: https://github.com/fengjian868/HolidayCountdown", FontSize = 12, Opacity = 0.5 });
         })));
         s.Children.Add(Expander("功能模块", new StackPanel { Spacing = 6 }.Also(p =>
         {
-            p.Children.Add(new TextBlock { Text = "- 节假日倒计时（调休提醒、进度环、假期占比）", FontSize = 12, Opacity = 0.8 });
+            p.Children.Add(new TextBlock { Text = "- 节假日倒计时（调休提醒、进度环、放假天数）", FontSize = 12, Opacity = 0.8 });
             p.Children.Add(new TextBlock { Text = "- 24节气倒计时（网络自动刷新）", FontSize = 12, Opacity = 0.8 });
             p.Children.Add(new TextBlock { Text = "- 农历日期显示（自定义模板）", FontSize = 12, Opacity = 0.8 });
             p.Children.Add(new TextBlock { Text = "- 自定义节日倒计时", FontSize = 12, Opacity = 0.8 });
             p.Children.Add(new TextBlock { Text = "- 寒暑假倒计时（周+天）", FontSize = 12, Opacity = 0.8 });
             p.Children.Add(new TextBlock { Text = "- 时段问候语（早中晚+放学+晚修）", FontSize = 12, Opacity = 0.8 });
-            p.Children.Add(new TextBlock { Text = "- 天气问候（根据天气自动匹配）", FontSize = 12, Opacity = 0.8 });
-            p.Children.Add(new TextBlock { Text = "- 合并/分开显示模式", FontSize = 12, Opacity = 0.8 });
+            p.Children.Add(new TextBlock { Text = "- 天气问候（根据温度提醒穿衣）", FontSize = 12, Opacity = 0.8 });
         })));
         s.Children.Add(new TextBlock { Text = "Made with love for ClassIsland", FontSize = 12, Opacity = 0.5, Margin = new Thickness(0, 8, 0, 0) });
         return new ScrollViewer { Content = s };

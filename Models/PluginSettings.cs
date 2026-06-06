@@ -6,7 +6,7 @@ namespace HolidayCountdown.Models;
 public class PluginSettings
 {
     // 全局
-    public int Version { get; set; } = 115;
+    public int Version { get; set; } = 120;
 
     // 节假日组件
     public int DisplayCount { get; set; } = 3;
