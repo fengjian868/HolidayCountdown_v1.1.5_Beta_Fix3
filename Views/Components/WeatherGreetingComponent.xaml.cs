@@ -49,25 +49,41 @@ public class WeatherGreetingComponent : ComponentBase
         // 通过 IWeatherService.GetWeatherTextByCode 获取天气文本
         var weatherText = GetWeatherTextByCode(weatherCode);
 
-        var greet = weatherText switch
-        {
-            var w when string.IsNullOrEmpty(w) => "",
-            var w when w.Contains("雨") => "下雨记得带伞 ☔",
-            var w when w.Contains("雪") => "下雪了，注意保暖 ❄️",
-            var w when w.Contains("晴") => "天气不错，保持好心情 ☀️",
-            var w when w.Contains("阴") => "阴天适合专注学习 📖",
-            var w when w.Contains("雾") => "雾大注意安全 🌫️",
-            var w when w.Contains("霾") => "霾天减少户外活动 😷",
-            var w when w.Contains("风") => "大风天注意安全 🍃",
-            var w when w.Contains("雷") => "雷电天气注意安全 ⚡",
-            var w when w.Contains("云") => "多云天气，舒适宜人 ⛅",
-            _ => $"今日天气：{weatherText}"
-        };
+        // 从设置中查找匹配的问候语
+        var greet = GetWeatherGreeting(weatherText);
 
+        // 预警简短显示
         if (!string.IsNullOrEmpty(warning))
-            greet = $"⚠️ {warning} " + greet;
+        {
+            // 只保留预警类型（如"高温"、"暴雨"），去掉"发布"、"预警"等字
+            var shortWarning = warning.Replace("发布", "").Replace("预警", "").Replace("信号", "").Trim();
+            if (shortWarning.Length > 6) shortWarning = shortWarning.Substring(0, 6);
+            greet = $"⚠️{shortWarning} " + greet;
+        }
 
         _txt.Text = greet;
+    }
+
+    string GetWeatherGreeting(string weatherText)
+    {
+        if (string.IsNullOrEmpty(weatherText)) return "";
+
+        var greetings = _svc?.Settings.WeatherGreetings;
+        if (greetings == null || greetings.Count == 0) return weatherText;
+
+        // 查找匹配的关键词（排除"默认"）
+        foreach (var kv in greetings)
+        {
+            if (kv.Key == "默认") continue;
+            if (weatherText.Contains(kv.Key))
+                return kv.Value.Replace("{weather}", weatherText);
+        }
+
+        // 使用默认
+        if (greetings.TryGetValue("默认", out var def))
+            return def.Replace("{weather}", weatherText);
+
+        return weatherText;
     }
 
     /// <summary>
