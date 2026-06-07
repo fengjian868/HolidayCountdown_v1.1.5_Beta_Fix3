@@ -63,18 +63,23 @@ public class GreetingSettingsPage : SettingsPageBase
                     if (TimeSpan.TryParse(v, out var ts)) { slot.EndHour = ts.Hours; slot.EndMinute = ts.Minutes; }
                 });
                 var textBox = Tx(slot.Text, 200, v => slot.Text = v);
+                // 标签选择
+                var tagCombo = new ComboBox { Width = 60 };
+                var tags = new[] { "早晨", "上午", "中午", "下午", "傍晚", "晚上", "深夜" };
+                foreach (var t in tags) tagCombo.Items.Add(t);
+                tagCombo.SelectedIndex = Math.Max(0, Array.IndexOf(tags, slot.Tag));
+                if (tagCombo.SelectedIndex < 0) tagCombo.SelectedIndex = 0;
+                tagCombo.SelectionChanged += (a, b) => slot.Tag = tags[tagCombo.SelectedIndex];
+                // 刷新同类按钮
                 var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
-                ToolTip.SetTip(refreshBtn, "刷新此问候语");
+                ToolTip.SetTip(refreshBtn, "刷新同类问候语");
                 refreshBtn.Click += async (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
-                    var newText = await FetchSingleGreetingAsync();
-                    if (!string.IsNullOrEmpty(newText))
-                    {
-                        slot.Text = newText;
-                        textBox.Text = newText;
-                        _svc.SaveSettings();
-                    }
+                    var currentTag = slot.Tag;
+                    if (string.IsNullOrEmpty(currentTag)) currentTag = tags[tagCombo.SelectedIndex];
+                    await RefreshByTagAsync(currentTag);
+                    RefreshList();
                     refreshBtn.Content = "🔄";
                 };
                 var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2) };
@@ -85,6 +90,7 @@ public class GreetingSettingsPage : SettingsPageBase
                 row.Children.Add(new TextBlock { Text = "到", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
                 row.Children.Add(endBox);
                 row.Children.Add(textBox);
+                row.Children.Add(tagCombo);
                 row.Children.Add(refreshBtn);
                 row.Children.Add(delBtn);
                 listPanel.Children.Add(row);
@@ -186,6 +192,36 @@ public class GreetingSettingsPage : SettingsPageBase
         panel.Children.Add(addBtn);
 
         return panel;
+    }
+
+    /// <summary>
+    /// 刷新指定标签的所有问候语
+    /// </summary>
+    async Task RefreshByTagAsync(string tag)
+    {
+        try
+        {
+            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var sameTagSlots = _svc.Settings.TimeSlotGreetings.Where(s => s.Tag == tag).ToList();
+            foreach (var slot in sameTagSlots)
+            {
+                try
+                {
+                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
+                    using var doc = System.Text.Json.JsonDocument.Parse(r);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("hitokoto", out var hp))
+                    {
+                        var text = hp.GetString() ?? "";
+                        if (!string.IsNullOrEmpty(text)) slot.Text = text;
+                    }
+                    await Task.Delay(200);
+                }
+                catch { }
+            }
+            _svc.SaveSettings();
+        }
+        catch { }
     }
 
     async Task<string> FetchSingleGreetingAsync()

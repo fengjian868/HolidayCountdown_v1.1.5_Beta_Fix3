@@ -104,6 +104,7 @@ public class TimeSlotGreeting
     public int EndHour { get; set; }
     public int EndMinute { get; set; }
     public string Text { get; set; } = "";
+    public string Tag { get; set; } = ""; // 标签：早晨/上午/中午/下午/傍晚/晚上/深夜
 }
 
 public class SpecialDateGreeting
