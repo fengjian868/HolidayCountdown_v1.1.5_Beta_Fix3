@@ -1,11 +1,13 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Media;
 using ClassIsland.Core.Attributes;
 using ClassIsland.Core.Abstractions.Controls;
+using HolidayCountdown.Models;
 using HolidayCountdown.Services;
 
 namespace HolidayCountdown.Views.SettingsPages;
@@ -39,29 +41,45 @@ public class WeatherSettingsPage : SettingsPageBase
         void RefreshList()
         {
             listPanel.Children.Clear();
-            foreach (var kv in _svc.Settings.WeatherGreetings)
+            foreach (var item in _svc.Settings.WeatherGreetingItems)
             {
                 var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-                var keyBox = new TextBox { Text = kv.Key, Width = 80, IsReadOnly = kv.Key == "默认" };
+                var keyBox = new TextBox { Text = item.Keyword, Width = 80, IsReadOnly = item.Keyword == "默认" };
                 keyBox.TextChanged += (a, b) =>
                 {
-                    if (kv.Key == "默认") return;
-                    var newKey = keyBox.Text ?? "";
-                    if (newKey != kv.Key && !string.IsNullOrEmpty(newKey) && !_svc.Settings.WeatherGreetings.ContainsKey(newKey))
-                    {
-                        _svc.Settings.WeatherGreetings.Remove(kv.Key);
-                        _svc.Settings.WeatherGreetings[newKey] = kv.Value;
-                    }
+                    if (item.Keyword == "默认") return;
+                    item.Keyword = keyBox.Text ?? "";
                 };
-                var textBox = new TextBox { Text = kv.Value, Width = 250 };
-                textBox.TextChanged += (a, b) => _svc.Settings.WeatherGreetings[kv.Key] = textBox.Text ?? "";
-                var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2), IsVisible = kv.Key != "默认" };
-                delBtn.Click += (a, e) => { _svc.Settings.WeatherGreetings.Remove(kv.Key); RefreshList(); };
+                var textBox = new TextBox { Text = item.Text, Width = 200 };
+                textBox.TextChanged += (a, b) => item.Text = textBox.Text ?? "";
+                // 标签选择
+                var tagCombo = new ComboBox { Width = 70 };
+                var tags = new[] { "雨天", "寒冷", "高温", "舒适", "恶劣天气", "大风", "雷电", "默认" };
+                foreach (var t in tags) tagCombo.Items.Add(t);
+                tagCombo.SelectedIndex = Math.Max(0, Array.IndexOf(tags, item.Tag));
+                if (tagCombo.SelectedIndex < 0) tagCombo.SelectedIndex = 0;
+                tagCombo.SelectionChanged += (a, b) => item.Tag = tags[tagCombo.SelectedIndex];
+                // 刷新同类按钮
+                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
+                ToolTip.SetTip(refreshBtn, "刷新同类问候语");
+                refreshBtn.Click += async (a, e) =>
+                {
+                    refreshBtn.Content = "⏳";
+                    var currentTag = item.Tag;
+                    if (string.IsNullOrEmpty(currentTag)) currentTag = tags[tagCombo.SelectedIndex];
+                    await RefreshWeatherByTagAsync(currentTag);
+                    RefreshList();
+                    refreshBtn.Content = "🔄";
+                };
+                var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2), IsVisible = item.Keyword != "默认" };
+                delBtn.Click += (a, e) => { _svc.Settings.WeatherGreetingItems.Remove(item); RefreshList(); };
 
                 row.Children.Add(new TextBlock { Text = "关键词", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
                 row.Children.Add(keyBox);
                 row.Children.Add(new TextBlock { Text = "文案", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
                 row.Children.Add(textBox);
+                row.Children.Add(tagCombo);
+                row.Children.Add(refreshBtn);
                 row.Children.Add(delBtn);
                 listPanel.Children.Add(row);
             }
@@ -73,7 +91,7 @@ public class WeatherSettingsPage : SettingsPageBase
         var addBtn = new Button { Content = "+ 添加天气问候", Padding = new Thickness(12, 4), HorizontalAlignment = HorizontalAlignment.Left };
         addBtn.Click += (a, e) =>
         {
-            _svc.Settings.WeatherGreetings["新天气"] = "";
+            _svc.Settings.WeatherGreetingItems.Add(new WeatherGreetingItem { Keyword = "新天气", Text = "", Tag = "舒适" });
             RefreshList();
         };
         panel.Children.Add(addBtn);
@@ -81,6 +99,36 @@ public class WeatherSettingsPage : SettingsPageBase
         panel.Children.Add(new TextBlock { Text = "说明：当天气文本包含对应关键词时，显示该文案。{weather} 会被替换为实际天气名称。", Opacity = 0.5, FontSize = 11, TextWrapping = TextWrapping.Wrap });
 
         return panel;
+    }
+
+    /// <summary>
+    /// 刷新指定标签的所有天气问候语
+    /// </summary>
+    async Task RefreshWeatherByTagAsync(string tag)
+    {
+        try
+        {
+            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var sameTagItems = _svc.Settings.WeatherGreetingItems.Where(i => i.Tag == tag && i.Keyword != "默认").ToList();
+            foreach (var item in sameTagItems)
+            {
+                try
+                {
+                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
+                    using var doc = System.Text.Json.JsonDocument.Parse(r);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("hitokoto", out var hp))
+                    {
+                        var text = hp.GetString() ?? "";
+                        if (!string.IsNullOrEmpty(text)) item.Text = text;
+                    }
+                    await Task.Delay(200);
+                }
+                catch { }
+            }
+            _svc.SaveSettings();
+        }
+        catch { }
     }
 
     static TextBlock Header(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };

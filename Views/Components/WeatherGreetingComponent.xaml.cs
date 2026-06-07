@@ -101,13 +101,16 @@ public class WeatherGreetingComponent : ComponentBase
     string GetWeatherGreeting(string weatherText)
     {
         if (string.IsNullOrEmpty(weatherText)) return "";
-        var match = _svc!.Settings.WeatherGreetings
-            .Where(kv => kv.Key != "默认" && weatherText.Contains(kv.Key))
-            .OrderByDescending(kv => kv.Key.Length)
+        var match = _svc!.Settings.WeatherGreetingItems
+            .Where(i => i.Keyword != "默认" && weatherText.Contains(i.Keyword))
+            .OrderByDescending(i => i.Keyword.Length)
             .FirstOrDefault();
-        var greet = match.Value ?? "";
-        if (string.IsNullOrEmpty(greet) && _svc.Settings.WeatherGreetings.TryGetValue("默认", out var def))
-            greet = def.Replace("{weather}", weatherText);
+        var greet = match?.Text ?? "";
+        if (string.IsNullOrEmpty(greet))
+        {
+            var def = _svc.Settings.WeatherGreetingItems.FirstOrDefault(i => i.Keyword == "默认");
+            if (def != null) greet = def.Text.Replace("{weather}", weatherText);
+        }
         return greet;
     }
 
