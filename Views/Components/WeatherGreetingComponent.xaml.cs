@@ -107,18 +107,28 @@ public class WeatherGreetingComponent : ComponentBase
     }
 
     /// <summary>
-    /// 获取预警提醒文本
+    /// 根据预警类型返回防护提醒
     /// </summary>
     string GetWarningText(string[] warnings)
     {
         if (warnings.Length == 0) return "";
-        // 根据预警级别返回不同前缀
-        var w = warnings[0]; // 取第一个预警
-        if (w.Contains("红")) return $"\u26A0️红色预警{w.Replace("红色预警", "").Replace("红色", "")}";
-        if (w.Contains("橙")) return $"\u26A0️橙色预警{w.Replace("橙色预警", "").Replace("橙色", "")}";
-        if (w.Contains("黄")) return $"\u26A0️黄色预警{w.Replace("黄色预警", "").Replace("黄色", "")}";
-        if (w.Contains("蓝")) return $"\u26A0️蓝色预警{w.Replace("蓝色预警", "").Replace("蓝色", "")}";
-        return $"\u26A0️{w}";
+        var w = warnings[0];
+        // 根据预警类型给出防护建议
+        if (w.Contains("高温")) return "高温预警，注意防暑多喝水 \uD83C\uDF21️";
+        if (w.Contains("暴雨")) return "暴雨预警，出门记得带伞 \uD83C\uDF27️";
+        if (w.Contains("大风")) return "大风预警，注意防风远离广告牌 \uD83D\uDCA8";
+        if (w.Contains("雷电")) return "雷电预警，尽量待在室内 \u26A1";
+        if (w.Contains("冰雹")) return "冰雹预警，注意防护避免外出 \uD83C\uDF28️";
+        if (w.Contains("暴雪")) return "暴雪预警，注意保暖防滑 \uD83C\uDF28️";
+        if (w.Contains("寒潮")) return "寒潮预警，多穿衣服注意保暖 \uD83E\uDDE3";
+        if (w.Contains("大雾")) return "大雾预警，出行注意交通安全 \uD83C\uDF2B️";
+        if (w.Contains("沙尘")) return "沙尘预警，出门戴口罩护眼镜 \uD83D\uDE37";
+        if (w.Contains("台风")) return "台风预警，关好门窗减少外出 \uD83C\uDF00";
+        if (w.Contains("霜冻")) return "霜冻预警，注意农作物和保暖 \u2744️";
+        if (w.Contains("道路结冰")) return "道路结冰预警，走路开车要小心 \uD83D\uDEA8";
+        if (w.Contains("干旱")) return "干旱预警，注意节约用水 \uD83D\uDCA7";
+        if (w.Contains("霾")) return "霾预警，出门记得戴口罩 \uD83D\uDE37";
+        return $"\u26A0️{w}，注意防护";
     }
 
     /// <summary>
