@@ -16,13 +16,14 @@ namespace HolidayCountdown.Views.Components;
     "A7B8C9D0-E1F2-3456-0123-123456789016",
     "天气问候",
     "\uE753",
-    "根据ClassIsland天气温度显示穿衣提醒"
+    "根据ClassIsland天气温度显示穿衣提醒，支持预警提示"
 )]
 public class WeatherGreetingComponent : ComponentBase
 {
     private DispatcherTimer _timer = null!;
     private TextBlock _txt = null!;
     private HolidayService? _svc;
+    private string _lastWeatherKey = "";
 
     public WeatherGreetingComponent()
     {
@@ -43,7 +44,12 @@ public class WeatherGreetingComponent : ComponentBase
     {
         if (_svc == null || !_svc.Settings.WeatherGreetingEnabled) { _txt.Text = ""; return; }
 
-        var (temp, weatherCode, warning) = GetWeatherData();
+        var (temp, weatherCode, warnings) = GetWeatherData();
+
+        // 用温度+天气代码+预警拼接成key，判断天气是否有变化
+        var currentKey = $"{temp}|{weatherCode}|{string.Join(",", warnings)}";
+        // 即使key相同也更新（因为定时器就是用来刷新的），但保留key用于调试
+        _lastWeatherKey = currentKey;
 
         // 优先根据温度给出穿衣提醒
         var greet = GetTempGreeting(temp);
@@ -55,9 +61,10 @@ public class WeatherGreetingComponent : ComponentBase
             greet = GetWeatherGreeting(weatherText);
         }
 
-        // 预警简短显示
-        if (!string.IsNullOrEmpty(warning))
-            greet = $"⚠️{warning} " + greet;
+        // 预警提醒（优先级最高）
+        var warningText = GetWarningText(warnings);
+        if (!string.IsNullOrEmpty(warningText))
+            greet = warningText + " " + greet;
 
         _txt.Text = greet;
     }
@@ -71,15 +78,15 @@ public class WeatherGreetingComponent : ComponentBase
         var t = temp.Value;
         return t switch
         {
-            >= 35 => "高温预警，注意防暑 🌡️",
+            >= 35 => "高温预警，注意防暑 \uD83C\uDF21️",
             >= 30 => "很热，穿短袖注意防晒 ☀️",
-            >= 25 => "较热，短袖即可 👕",
-            >= 20 => "舒适，薄长袖或短袖 🍃",
-            >= 15 => "微凉，建议穿外套 🧥",
-            >= 10 => "较冷，穿厚外套 🧣",
+            >= 25 => "较热，短袖即可 \uD83D\uDC55",
+            >= 20 => "舒适，薄长袖或短袖 \uD83C\uDF43",
+            >= 15 => "微凉，建议穿外套 \uD83E\uDDE5",
+            >= 10 => "较冷，穿厚外套 \uD83E\uDDE3",
             >= 5 => "冷，穿羽绒服或棉衣 ❄️",
-            >= 0 => "很冷，注意保暖 🥶",
-            _ => "严寒，多穿点别冻着 🧊"
+            >= 0 => "很冷，注意保暖 \uD83E\uDD76",
+            _ => "严寒，多穿点别冻着 \uD83E\uDDCA"
         };
     }
 
@@ -100,17 +107,32 @@ public class WeatherGreetingComponent : ComponentBase
     }
 
     /// <summary>
-    /// 获取天气数据：温度、天气代码、预警
+    /// 获取预警提醒文本
     /// </summary>
-    (double? temp, string? weatherCode, string? warning) GetWeatherData()
+    string GetWarningText(string[] warnings)
+    {
+        if (warnings.Length == 0) return "";
+        // 根据预警级别返回不同前缀
+        var w = warnings[0]; // 取第一个预警
+        if (w.Contains("红")) return $"\u26A0️红色预警{w.Replace("红色预警", "").Replace("红色", "")}";
+        if (w.Contains("橙")) return $"\u26A0️橙色预警{w.Replace("橙色预警", "").Replace("橙色", "")}";
+        if (w.Contains("黄")) return $"\u26A0️黄色预警{w.Replace("黄色预警", "").Replace("黄色", "")}";
+        if (w.Contains("蓝")) return $"\u26A0️蓝色预警{w.Replace("蓝色预警", "").Replace("蓝色", "")}";
+        return $"\u26A0️{w}";
+    }
+
+    /// <summary>
+    /// 获取天气数据：温度、天气代码、预警列表
+    /// </summary>
+    (double? temp, string? weatherCode, string[] warnings) GetWeatherData()
     {
         try
         {
             var settings = GetSettingsServiceSettings();
-            if (settings == null) return (null, null, null);
+            if (settings == null) return (null, null, Array.Empty<string>());
 
             var lastWeatherInfo = GetPropertyValue(settings, "LastWeatherInfo");
-            if (lastWeatherInfo == null) return (null, null, null);
+            if (lastWeatherInfo == null) return (null, null, Array.Empty<string>());
 
             // 获取 Current 中的温度
             var current = GetPropertyValue(lastWeatherInfo, "Current");
@@ -127,12 +149,12 @@ public class WeatherGreetingComponent : ComponentBase
                 weatherCode = GetPropertyValue(current, "Weather")?.ToString();
             }
 
-            // 获取预警
-            var warning = GetFirstAlertTitle(lastWeatherInfo);
+            // 获取所有预警
+            var warnings = GetAllAlertTitles(lastWeatherInfo);
 
-            return (temp, weatherCode, warning);
+            return (temp, weatherCode, warnings);
         }
-        catch { return (null, null, null); }
+        catch { return (null, null, Array.Empty<string>()); }
     }
 
     object? GetSettingsServiceSettings()
@@ -176,31 +198,40 @@ public class WeatherGreetingComponent : ComponentBase
         catch { return null; }
     }
 
-    string? GetFirstAlertTitle(object lastWeatherInfo)
+    /// <summary>
+    /// 获取所有预警标题
+    /// </summary>
+    string[] GetAllAlertTitles(object lastWeatherInfo)
     {
         try
         {
             var alerts = GetPropertyValue(lastWeatherInfo, "Alerts");
-            if (alerts == null) return null;
+            if (alerts == null) return Array.Empty<string>();
 
             var countProp = alerts.GetType().GetProperty("Count");
             var count = (int?)countProp?.GetValue(alerts) ?? 0;
-            if (count == 0) return null;
+            if (count == 0) return Array.Empty<string>();
 
-            var firstMethod = alerts.GetType().GetMethods()
-                .FirstOrDefault(m => m.Name == "FirstOrDefault" && m.GetParameters().Length == 0);
-            if (firstMethod != null)
+            var result = new System.Collections.Generic.List<string>();
+            // 尝试用索引器获取
+            var indexer = alerts.GetType().GetProperties()
+                .FirstOrDefault(p => p.GetIndexParameters().Length == 1);
+            if (indexer != null)
             {
-                var firstAlert = firstMethod.Invoke(alerts, null);
-                if (firstAlert != null)
+                for (int i = 0; i < count; i++)
                 {
-                    var titleProp = firstAlert.GetType().GetProperty("Title", BindingFlags.Public | BindingFlags.Instance);
-                    return titleProp?.GetValue(firstAlert)?.ToString();
+                    var alert = indexer.GetValue(alerts, new object[] { i });
+                    if (alert != null)
+                    {
+                        var titleProp = alert.GetType().GetProperty("Title", BindingFlags.Public | BindingFlags.Instance);
+                        var title = titleProp?.GetValue(alert)?.ToString();
+                        if (!string.IsNullOrEmpty(title)) result.Add(title);
+                    }
                 }
             }
-            return null;
+            return result.ToArray();
         }
-        catch { return null; }
+        catch { return Array.Empty<string>(); }
     }
 
     string GetWeatherTextByCode(string code)
