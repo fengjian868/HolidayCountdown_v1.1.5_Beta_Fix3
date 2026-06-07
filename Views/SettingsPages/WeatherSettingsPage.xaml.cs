@@ -62,12 +62,12 @@ public class WeatherSettingsPage : SettingsPageBase
                 // 刷新同类按钮
                 var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
                 ToolTip.SetTip(refreshBtn, "刷新同类问候语");
-                refreshBtn.Click += async (a, e) =>
+                refreshBtn.Click += (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
                     var currentTag = item.Tag;
                     if (string.IsNullOrEmpty(currentTag)) currentTag = tags[tagCombo.SelectedIndex];
-                    await RefreshWeatherByTagAsync(currentTag);
+                    RefreshWeatherByTag(currentTag);
                     RefreshList();
                     refreshBtn.Content = "🔄";
                 };
@@ -102,33 +102,31 @@ public class WeatherSettingsPage : SettingsPageBase
     }
 
     /// <summary>
-    /// 刷新指定标签的所有天气问候语
+    /// 刷新指定标签的所有天气问候语，从该类型预设库中随机选取
     /// </summary>
-    async Task RefreshWeatherByTagAsync(string tag)
+    void RefreshWeatherByTag(string tag)
     {
-        try
+        var pools = new System.Collections.Generic.Dictionary<string, string[]>
         {
-            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            var sameTagItems = _svc.Settings.WeatherGreetingItems.Where(i => i.Tag == tag && i.Keyword != "默认").ToList();
-            foreach (var item in sameTagItems)
-            {
-                try
-                {
-                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
-                    using var doc = System.Text.Json.JsonDocument.Parse(r);
-                    var root = doc.RootElement;
-                    if (root.TryGetProperty("hitokoto", out var hp))
-                    {
-                        var text = hp.GetString() ?? "";
-                        if (!string.IsNullOrEmpty(text)) item.Text = text;
-                    }
-                    await Task.Delay(200);
-                }
-                catch { }
-            }
-            _svc.SaveSettings();
+            ["雨天"] = new[] { "记得带伞 ☔", "雨声潺潺，适合静思 🌧️", "雨天路滑，小心行走 🌧️", "听着雨声，心情也温柔了 🌧️", "出门别忘了伞哦 ☂️" },
+            ["寒冷"] = new[] { "多穿点，别感冒了 ❄️", "天冷了，喝杯热饮暖暖身 ☕", "寒风凛冽，注意保暖 🧣", "雪花飘飘，注意防滑 ❄️", "天冷加衣，照顾好自己 🧥" },
+            ["高温"] = new[] { "注意防暑，多喝水 🌡️", "烈日当空，避免暴晒 ☀️", "天气炎热，吃点清凉的 🍉", "高温难耐，注意午休 😴", "防晒补水，保持清爽 💧" },
+            ["舒适"] = new[] { "天气不错，心情也好 😊", "舒适宜人，适合学习 📖", "微风拂面，神清气爽 🍃", "好天气，出去走走吧 🚶", "云淡风轻，一切刚好 ⛅" },
+            ["恶劣天气"] = new[] { "天气不好，减少外出 😷", "注意安全，保护好自己 ⚠️", "恶劣天气，关好门窗 🏠", "能见度低，出行小心 🌫️", "宅家也不错，安全第一 🛋️" },
+            ["大风"] = new[] { "风大，注意防风 💨", "远离广告牌和临时搭建物 🚧", "大风天，关好窗户 🪟", "注意防风，别被吹跑了 😄", "风大 dust多，戴口罩 😷" },
+            ["雷电"] = new[] { "雷电天气，待在室内 ⚡", "关好电器，防雷击 🔌", "雷雨交加，注意安全 ⛈️", "别在树下避雨 🌳", "等雷停了再出门吧 🏠" }
+        };
+
+        if (!pools.TryGetValue(tag, out var pool)) return;
+
+        var sameTagItems = _svc.Settings.WeatherGreetingItems.Where(i => i.Tag == tag && i.Keyword != "默认").ToList();
+        var rnd = new Random();
+        foreach (var item in sameTagItems)
+        {
+            var text = pool[rnd.Next(pool.Length)];
+            if (!string.IsNullOrEmpty(text)) item.Text = text;
         }
-        catch { }
+        _svc.SaveSettings();
     }
 
     static TextBlock Header(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };

@@ -73,12 +73,12 @@ public class GreetingSettingsPage : SettingsPageBase
                 // 刷新同类按钮
                 var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
                 ToolTip.SetTip(refreshBtn, "刷新同类问候语");
-                refreshBtn.Click += async (a, e) =>
+                refreshBtn.Click += (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
                     var currentTag = slot.Tag;
                     if (string.IsNullOrEmpty(currentTag)) currentTag = tags[tagCombo.SelectedIndex];
-                    await RefreshByTagAsync(currentTag);
+                    RefreshByTag(currentTag);
                     RefreshList();
                     refreshBtn.Content = "🔄";
                 };
@@ -162,12 +162,12 @@ public class GreetingSettingsPage : SettingsPageBase
                 var textBox = Tx(item.Text, 200, v => item.Text = v);
                 var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
                 ToolTip.SetTip(refreshBtn, "刷新同类问候语");
-                refreshBtn.Click += async (a, e) =>
+                refreshBtn.Click += (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
                     var currentTag = item.Tag;
                     if (string.IsNullOrEmpty(currentTag)) currentTag = days[tagCombo.SelectedIndex];
-                    await RefreshSpecialByTagAsync(currentTag);
+                    RefreshSpecialByTag(currentTag);
                     RefreshList();
                     refreshBtn.Content = "🔄";
                 };
@@ -199,78 +199,59 @@ public class GreetingSettingsPage : SettingsPageBase
     }
 
     /// <summary>
-    /// 刷新指定标签的所有时段问候语
+    /// 刷新指定标签的所有时段问候语，从预设库中随机选取
     /// </summary>
-    async Task RefreshByTagAsync(string tag)
+    void RefreshByTag(string tag)
     {
-        try
+        var pools = new System.Collections.Generic.Dictionary<string, string[]>
         {
-            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            var sameTagSlots = _svc.Settings.TimeSlotGreetings.Where(s => s.Tag == tag).ToList();
-            foreach (var slot in sameTagSlots)
-            {
-                try
-                {
-                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
-                    using var doc = System.Text.Json.JsonDocument.Parse(r);
-                    var root = doc.RootElement;
-                    if (root.TryGetProperty("hitokoto", out var hp))
-                    {
-                        var text = hp.GetString() ?? "";
-                        if (!string.IsNullOrEmpty(text)) slot.Text = text;
-                    }
-                    await Task.Delay(200);
-                }
-                catch { }
-            }
-            _svc.SaveSettings();
+            ["早晨"] = new[] { "早啊，今天也要加油 💪", "新的一天开始了，元气满满 ☀️", "早安，记得吃早餐 🍞", "清晨的第一缕阳光，送给你 🌅", "早起的人儿有书读 📚" },
+            ["上午"] = new[] { "上午好，保持专注 📖", "趁早上头脑清醒，多学一点 🧠", "上午是黄金时间，别浪费 ⏰", "加油，离午休不远了 🍱", "保持状态，继续冲 💨" },
+            ["中午"] = new[] { "吃饭时间到！🍚", "午饭吃什么？🤔", "吃饱了才有力气学习 🍜", "午休一下，下午更有精神 😴", "记得细嚼慢咽哦 🥢" },
+            ["下午"] = new[] { "下午容易犯困，坚持住 😪", "来杯咖啡提提神 ☕", "下午也是学习的好时光 📚", "再坚持一下，快放学了 🎒", "打起精神，别走神 💪" },
+            ["傍晚"] = new[] { "即将吃晚饭！！🍽️", "一天快结束了，辛苦了 🌆", "夕阳无限好，只是近黄昏 🌇", "晚饭吃什么好呢？🤤", "放松一下，准备晚餐 🍳" },
+            ["晚上"] = new[] { "再坚持一下就放学了！🎉", "晚上是复习的好时间 📖", "别熬夜，注意作息 🌙", "今天的任务完成了吗？✅", "晚安前的最后冲刺 🏃" },
+            ["深夜"] = new[] { "该睡觉了，别熬太晚 🌙", "熬夜伤身，早点休息 😴", "深夜了，明天再继续吧 🛏️", "晚安，好梦 💤", "身体是革命的本钱 🌟" }
+        };
+
+        if (!pools.TryGetValue(tag, out var pool)) return;
+
+        var sameTagSlots = _svc.Settings.TimeSlotGreetings.Where(s => s.Tag == tag).ToList();
+        var rnd = new Random();
+        foreach (var slot in sameTagSlots)
+        {
+            var text = pool[rnd.Next(pool.Length)];
+            if (!string.IsNullOrEmpty(text)) slot.Text = text;
         }
-        catch { }
+        _svc.SaveSettings();
     }
 
     /// <summary>
-    /// 刷新指定标签的所有特殊日期问候语
+    /// 刷新指定标签的所有特殊日期问候语，从预设库中随机选取
     /// </summary>
-    async Task RefreshSpecialByTagAsync(string tag)
+    void RefreshSpecialByTag(string tag)
     {
-        try
+        var pools = new System.Collections.Generic.Dictionary<string, string[]>
         {
-            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            var sameTagItems = _svc.Settings.SpecialDateGreetings.Where(s => s.Tag == tag).ToList();
-            foreach (var item in sameTagItems)
-            {
-                try
-                {
-                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
-                    using var doc = System.Text.Json.JsonDocument.Parse(r);
-                    var root = doc.RootElement;
-                    if (root.TryGetProperty("hitokoto", out var hp))
-                    {
-                        var text = hp.GetString() ?? "";
-                        if (!string.IsNullOrEmpty(text)) item.Text = text;
-                    }
-                    await Task.Delay(200);
-                }
-                catch { }
-            }
-            _svc.SaveSettings();
-        }
-        catch { }
-    }
+            ["周一"] = new[] { "周一了，新的一周开始 💪", "星期一，打起精神来 📅", "周一综合症？坚持一下 😅", "新的一周，新的目标 🎯", "周一加油，冲鸭 🚀" },
+            ["周二"] = new[] { "周二，渐入佳境 📈", "星期二，状态不错 😊", "周二也要努力呀 💪", "熬过周一，周二轻松点 🎈", "周二快乐，保持节奏 🎵" },
+            ["周三"] = new[] { "周三，小周末来了 🎉", "星期三，过半了！📊", "周三加油，胜利在望 🏁", "小周末快乐，放松一下 😌", "周三了，再坚持两天 ✌️" },
+            ["周四"] = new[] { "周四，黎明前的黑暗 🌑", "星期四，快解放了 🎊", "周四坚持住，周五在招手 👋", "明天就是周五了！🎈", "周四不松懈，继续加油 🔥" },
+            ["周五"] = new[] { "周五了，周末在望！🎉", "星期五，心情飞扬 💃", "最后一天，冲鸭 🚀", "周五快乐，准备迎接周末 🏖️", "坚持到今天，你真棒 👍" },
+            ["周六"] = new[] { "周六快乐！🎊", "周末到了，好好休息 🛋️", "星期六，睡到自然醒 😴", "周末愉快，做自己喜欢的事 ❤️", "周六不学习，放松一下 🎮" },
+            ["周日"] = new[] { "周日，享受最后假期 🌴", "星期天，准备迎接新周 📅", "今晚有晚修，记得按时到教室 ⏰", "周日了，调整状态 💪", "周末余额不足，且行且珍惜 ⏳" }
+        };
 
-    async Task<string> FetchSingleGreetingAsync()
-    {
-        try
+        if (!pools.TryGetValue(tag, out var pool)) return;
+
+        var sameTagItems = _svc.Settings.SpecialDateGreetings.Where(s => s.Tag == tag).ToList();
+        var rnd = new Random();
+        foreach (var item in sameTagItems)
         {
-            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
-            using var doc = System.Text.Json.JsonDocument.Parse(r);
-            var root = doc.RootElement;
-            if (root.TryGetProperty("hitokoto", out var hp))
-                return hp.GetString() ?? "";
+            var text = pool[rnd.Next(pool.Length)];
+            if (!string.IsNullOrEmpty(text)) item.Text = text;
         }
-        catch { }
-        return "";
+        _svc.SaveSettings();
     }
 
     static TextBlock Header(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };
