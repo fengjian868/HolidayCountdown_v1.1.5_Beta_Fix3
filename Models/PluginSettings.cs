@@ -117,4 +117,5 @@ public class SpecialDateGreeting
     public int EndMinute { get; set; } = 59;
     public string Text { get; set; } = "";
     public bool Enabled { get; set; } = true;
+    public string Tag { get; set; } = ""; // 标签：周一/周二/周三/周四/周五/周六/周日
 }

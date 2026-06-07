@@ -112,39 +112,86 @@ public class WeatherGreetingComponent : ComponentBase
     }
 
     /// <summary>
-    /// 根据所有预警类型合并返回防护提醒
+    /// 根据所有预警类型合并返回一条简短防护提醒
     /// </summary>
     string GetWarningText(string[] warnings)
     {
         if (warnings.Length == 0) return "";
-        var tips = new System.Collections.Generic.List<string>();
+        var types = new System.Collections.Generic.List<string>();
         foreach (var w in warnings)
         {
-            var tip = GetSingleWarningTip(w);
-            if (!string.IsNullOrEmpty(tip) && !tips.Contains(tip)) tips.Add(tip);
+            var type = GetWarningType(w);
+            if (!string.IsNullOrEmpty(type) && !types.Contains(type)) types.Add(type);
         }
-        if (tips.Count == 0) return "";
-        if (tips.Count == 1) return tips[0];
-        return string.Join("，", tips);
+        if (types.Count == 0) return "";
+        if (types.Count == 1) return GetShortTip(types[0]);
+        // 多个预警合并为一条简短提醒
+        var typeStr = string.Join("、", types);
+        var actions = types.Select(GetShortAction).Distinct();
+        return $"⚠️{typeStr}预警，{string.Join("，", actions)}";
     }
 
-    string GetSingleWarningTip(string w)
+    string GetWarningType(string w)
     {
-        if (w.Contains("高温")) return "高温预警，注意防暑多喝水 \uD83C\uDF21️";
-        if (w.Contains("暴雨")) return "暴雨预警，出门记得带伞 \uD83C\uDF27️";
-        if (w.Contains("大风")) return "大风预警，注意防风远离广告牌 \uD83D\uDCA8";
-        if (w.Contains("雷电")) return "雷电预警，尽量待在室内 \u26A1";
-        if (w.Contains("冰雹")) return "冰雹预警，注意防护避免外出 \uD83C\uDF28️";
-        if (w.Contains("暴雪")) return "暴雪预警，注意保暖防滑 \uD83C\uDF28️";
-        if (w.Contains("寒潮")) return "寒潮预警，多穿衣服注意保暖 \uD83E\uDDE3";
-        if (w.Contains("大雾")) return "大雾预警，出行注意交通安全 \uD83C\uDF2B️";
-        if (w.Contains("沙尘")) return "沙尘预警，出门戴口罩护眼镜 \uD83D\uDE37";
-        if (w.Contains("台风")) return "台风预警，关好门窗减少外出 \uD83C\uDF00";
-        if (w.Contains("霜冻")) return "霜冻预警，注意农作物和保暖 \u2744️";
-        if (w.Contains("道路结冰")) return "道路结冰预警，走路开车要小心 \uD83D\uDEA8";
-        if (w.Contains("干旱")) return "干旱预警，注意节约用水 \uD83D\uDCA7";
-        if (w.Contains("霾")) return "霾预警，出门记得戴口罩 \uD83D\uDE37";
-        return $"\u26A0️{w}，注意防护";
+        if (w.Contains("高温")) return "高温";
+        if (w.Contains("暴雨")) return "暴雨";
+        if (w.Contains("大风")) return "大风";
+        if (w.Contains("雷电")) return "雷电";
+        if (w.Contains("冰雹")) return "冰雹";
+        if (w.Contains("暴雪")) return "暴雪";
+        if (w.Contains("寒潮")) return "寒潮";
+        if (w.Contains("大雾")) return "大雾";
+        if (w.Contains("沙尘")) return "沙尘";
+        if (w.Contains("台风")) return "台风";
+        if (w.Contains("霜冻")) return "霜冻";
+        if (w.Contains("道路结冰")) return "道路结冰";
+        if (w.Contains("干旱")) return "干旱";
+        if (w.Contains("霾")) return "霾";
+        return "";
+    }
+
+    string GetShortTip(string type)
+    {
+        return type switch
+        {
+            "高温" => "高温预警，注意防暑 \uD83C\uDF21️",
+            "暴雨" => "暴雨预警，记得带伞 \uD83C\uDF27️",
+            "大风" => "大风预警，注意防风 \uD83D\uDCA8",
+            "雷电" => "雷电预警，待在室内 \u26A1",
+            "冰雹" => "冰雹预警，避免外出 \uD83C\uDF28️",
+            "暴雪" => "暴雪预警，注意防滑 \uD83C\uDF28️",
+            "寒潮" => "寒潮预警，注意保暖 \uD83E\uDDE3",
+            "大雾" => "大雾预警，注意安全 \uD83C\uDF2B️",
+            "沙尘" => "沙尘预警，戴口罩 \uD83D\uDE37",
+            "台风" => "台风预警，关好门窗 \uD83C\uDF00",
+            "霜冻" => "霜冻预警，注意保暖 \u2744️",
+            "道路结冰" => "道路结冰，小心行走 \uD83D\uDEA8",
+            "干旱" => "干旱预警，节约用水 \uD83D\uDCA7",
+            "霾" => "霾预警，戴口罩 \uD83D\uDE37",
+            _ => ""
+        };
+    }
+
+    string GetShortAction(string type)
+    {
+        return type switch
+        {
+            "高温" => "注意防暑",
+            "暴雨" => "记得带伞",
+            "大风" => "注意防风",
+            "雷电" => "待在室内",
+            "冰雹" => "避免外出",
+            "暴雪" => "注意防滑",
+            "寒潮" => "注意保暖",
+            "大雾" => "注意安全",
+            "沙尘" => "戴口罩",
+            "台风" => "关好门窗",
+            "霜冻" => "注意保暖",
+            "道路结冰" => "小心行走",
+            "干旱" => "节约用水",
+            "霾" => "戴口罩",
+            _ => "注意防护"
+        };
     }
 
     /// <summary>

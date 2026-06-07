@@ -123,7 +123,7 @@ public class GreetingSettingsPage : SettingsPageBase
             {
                 var row = new StackPanel { Spacing = 4 };
                 
-                // 第一行：名称 + 星期 + 启用开关 + 删除
+                // 第一行：名称 + 星期 + 标签 + 启用开关 + 删除
                 var headerRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                 var nameBox = Tx(item.Name, 80, v => item.Name = v);
                 var dayCombo = new ComboBox { Width = 70 };
@@ -131,6 +131,12 @@ public class GreetingSettingsPage : SettingsPageBase
                 foreach (var d in days) dayCombo.Items.Add(d);
                 dayCombo.SelectedIndex = Math.Max(0, Math.Min(6, item.DayOfWeek - 1));
                 dayCombo.SelectionChanged += (a, b) => item.DayOfWeek = dayCombo.SelectedIndex + 1;
+                // 标签选择
+                var tagCombo = new ComboBox { Width = 60 };
+                foreach (var d in days) tagCombo.Items.Add(d);
+                tagCombo.SelectedIndex = Math.Max(0, Array.IndexOf(days, item.Tag));
+                if (tagCombo.SelectedIndex < 0) tagCombo.SelectedIndex = dayCombo.SelectedIndex;
+                tagCombo.SelectionChanged += (a, b) => item.Tag = days[tagCombo.SelectedIndex];
                 var enabledChk = new CheckBox { Content = "启用", IsChecked = item.Enabled };
                 enabledChk.IsCheckedChanged += (a, b) => item.Enabled = enabledChk.IsChecked == true;
                 var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2) };
@@ -138,11 +144,12 @@ public class GreetingSettingsPage : SettingsPageBase
                 
                 headerRow.Children.Add(nameBox);
                 headerRow.Children.Add(dayCombo);
+                headerRow.Children.Add(tagCombo);
                 headerRow.Children.Add(enabledChk);
                 headerRow.Children.Add(delBtn);
                 row.Children.Add(headerRow);
                 
-                // 第二行：时段
+                // 第二行：时段 + 刷新同类按钮
                 var timeRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
                 var startBox = Tx($"{item.StartHour:D2}:{item.StartMinute:D2}", 50, v =>
                 {
@@ -154,17 +161,14 @@ public class GreetingSettingsPage : SettingsPageBase
                 });
                 var textBox = Tx(item.Text, 200, v => item.Text = v);
                 var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
-                ToolTip.SetTip(refreshBtn, "刷新此问候语");
+                ToolTip.SetTip(refreshBtn, "刷新同类问候语");
                 refreshBtn.Click += async (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
-                    var newText = await FetchSingleGreetingAsync();
-                    if (!string.IsNullOrEmpty(newText))
-                    {
-                        item.Text = newText;
-                        textBox.Text = newText;
-                        _svc.SaveSettings();
-                    }
+                    var currentTag = item.Tag;
+                    if (string.IsNullOrEmpty(currentTag)) currentTag = days[tagCombo.SelectedIndex];
+                    await RefreshSpecialByTagAsync(currentTag);
+                    RefreshList();
                     refreshBtn.Content = "🔄";
                 };
                 
@@ -195,7 +199,7 @@ public class GreetingSettingsPage : SettingsPageBase
     }
 
     /// <summary>
-    /// 刷新指定标签的所有问候语
+    /// 刷新指定标签的所有时段问候语
     /// </summary>
     async Task RefreshByTagAsync(string tag)
     {
@@ -214,6 +218,36 @@ public class GreetingSettingsPage : SettingsPageBase
                     {
                         var text = hp.GetString() ?? "";
                         if (!string.IsNullOrEmpty(text)) slot.Text = text;
+                    }
+                    await Task.Delay(200);
+                }
+                catch { }
+            }
+            _svc.SaveSettings();
+        }
+        catch { }
+    }
+
+    /// <summary>
+    /// 刷新指定标签的所有特殊日期问候语
+    /// </summary>
+    async Task RefreshSpecialByTagAsync(string tag)
+    {
+        try
+        {
+            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var sameTagItems = _svc.Settings.SpecialDateGreetings.Where(s => s.Tag == tag).ToList();
+            foreach (var item in sameTagItems)
+            {
+                try
+                {
+                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
+                    using var doc = System.Text.Json.JsonDocument.Parse(r);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("hitokoto", out var hp))
+                    {
+                        var text = hp.GetString() ?? "";
+                        if (!string.IsNullOrEmpty(text)) item.Text = text;
                     }
                     await Task.Delay(200);
                 }
