@@ -63,7 +63,8 @@ public class GreetingSettingsPage : SettingsPageBase
                     if (TimeSpan.TryParse(v, out var ts)) { slot.EndHour = ts.Hours; slot.EndMinute = ts.Minutes; }
                 });
                 var textBox = Tx(slot.Text, 200, v => slot.Text = v);
-                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2), ToolTip.Tip = "刷新此问候语" };
+                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
+                ToolTip.SetTip(refreshBtn, "刷新此问候语");
                 refreshBtn.Click += async (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
@@ -146,7 +147,8 @@ public class GreetingSettingsPage : SettingsPageBase
                     if (TimeSpan.TryParse(v, out var ts)) { item.EndHour = ts.Hours; item.EndMinute = ts.Minutes; }
                 });
                 var textBox = Tx(item.Text, 200, v => item.Text = v);
-                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2), ToolTip.Tip = "刷新此问候语" };
+                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2) };
+                ToolTip.SetTip(refreshBtn, "刷新此问候语");
                 refreshBtn.Click += async (a, e) =>
                 {
                     refreshBtn.Content = "⏳";
