@@ -61,10 +61,15 @@ public class WeatherGreetingComponent : ComponentBase
             greet = GetWeatherGreeting(weatherText);
         }
 
-        // 预警提醒（优先级最高）
+        // 预警提醒
         var warningText = GetWarningText(warnings);
         if (!string.IsNullOrEmpty(warningText))
-            greet = warningText + " " + greet;
+        {
+            if (_svc.Settings.WeatherWarningOverride)
+                greet = warningText; // 预警覆盖普通提醒
+            else
+                greet = warningText + " " + greet; // 预警+普通提醒
+        }
 
         _txt.Text = greet;
     }

@@ -23,6 +23,7 @@ public class WeatherSettingsPage : SettingsPageBase
         s.Children.Add(Expander("开关", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(Row("启用天气问候", "根据ClassIsland天气显示问候语", Toggle(_svc.Settings.WeatherGreetingEnabled, v => _svc.Settings.WeatherGreetingEnabled = v)));
+            p.Children.Add(Row("预警覆盖提醒", "有预警时只显示预警信息", Toggle(_svc.Settings.WeatherWarningOverride, v => _svc.Settings.WeatherWarningOverride = v)));
         })));
         s.Children.Add(Expander("问候语文案", BuildGreetingPanel()));
         s.Children.Add(new TextBlock { Text = "天气数据来自ClassIsland内置天气服务，插件会自动读取当前天气并匹配对应的问候语。", Opacity = 0.5, FontSize = 11, TextWrapping = TextWrapping.Wrap });
