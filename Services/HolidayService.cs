@@ -296,47 +296,44 @@ public class HolidayService
 
     string GetStr(JsonElement e, string p) => e.TryGetProperty(p, out var v) ? (v.GetString() ?? "") : "";
 
-    public async Task RefreshGreetingsAsync()
+    public async Task RefreshGreetingsAsync(bool force = false)
     {
         if (!Settings.GreetingOnline) return;
+        // 每天只刷新一次，除非强制刷新
+        var today = DateTime.Now.Date;
+        if (!force && Settings.LastGreetingRefreshDate.HasValue && Settings.LastGreetingRefreshDate.Value.Date == today) return;
+
         try
         {
             using var c = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-            var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
-            using var doc = JsonDocument.Parse(r);
-            var root = doc.RootElement;
-            if (root.TryGetProperty("hitokoto", out var hp))
+            // 根据时段数量获取对应数量的问候语
+            var refreshedCount = 0;
+            foreach (var slot in Settings.TimeSlotGreetings)
             {
-                var text = hp.GetString() ?? "";
-                if (!string.IsNullOrEmpty(text))
+                try
                 {
-                    var now = DateTime.Now;
-                    var ct = now.TimeOfDay;
-
-                    // 如果当前处于特殊日期时段内，不刷新（特殊日期优先且固定）
-                    var inSpecial = Settings.SpecialDateGreetings.Any(sg =>
+                    var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
+                    using var doc = JsonDocument.Parse(r);
+                    var root = doc.RootElement;
+                    if (root.TryGetProperty("hitokoto", out var hp))
                     {
-                        if (!sg.Enabled) return false;
-                        if ((int)now.DayOfWeek == 0 ? sg.DayOfWeek != 7 : (int)now.DayOfWeek != sg.DayOfWeek) return false;
-                        var start = new TimeSpan(sg.StartHour, sg.StartMinute, 0);
-                        var end = new TimeSpan(sg.EndHour, sg.EndMinute, 0);
-                        return ct >= start && ct < end;
-                    });
-                    if (inSpecial) return;
-
-                    // 只刷新当前所处的时间段问候语，且保存到设置
-                    var slot = Settings.TimeSlotGreetings.FirstOrDefault(s =>
-                    {
-                        var start = new TimeSpan(s.StartHour, s.StartMinute, 0);
-                        var end = new TimeSpan(s.EndHour, s.EndMinute, 0);
-                        return ct >= start && ct < end;
-                    });
-                    if (slot != null)
-                    {
-                        slot.Text = text;
-                        SaveSettings();
+                        var text = hp.GetString() ?? "";
+                        if (!string.IsNullOrEmpty(text))
+                        {
+                            slot.Text = text;
+                            refreshedCount++;
+                        }
                     }
+                    // 稍微延迟避免请求过快
+                    await Task.Delay(200);
                 }
+                catch { }
+            }
+
+            if (refreshedCount > 0)
+            {
+                Settings.LastGreetingRefreshDate = today;
+                SaveSettings();
             }
         }
         catch { }

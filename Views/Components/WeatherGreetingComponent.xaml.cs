@@ -112,13 +112,24 @@ public class WeatherGreetingComponent : ComponentBase
     }
 
     /// <summary>
-    /// 根据预警类型返回防护提醒
+    /// 根据所有预警类型合并返回防护提醒
     /// </summary>
     string GetWarningText(string[] warnings)
     {
         if (warnings.Length == 0) return "";
-        var w = warnings[0];
-        // 根据预警类型给出防护建议
+        var tips = new System.Collections.Generic.List<string>();
+        foreach (var w in warnings)
+        {
+            var tip = GetSingleWarningTip(w);
+            if (!string.IsNullOrEmpty(tip) && !tips.Contains(tip)) tips.Add(tip);
+        }
+        if (tips.Count == 0) return "";
+        if (tips.Count == 1) return tips[0];
+        return string.Join("，", tips);
+    }
+
+    string GetSingleWarningTip(string w)
+    {
         if (w.Contains("高温")) return "高温预警，注意防暑多喝水 \uD83C\uDF21️";
         if (w.Contains("暴雨")) return "暴雨预警，出门记得带伞 \uD83C\uDF27️";
         if (w.Contains("大风")) return "大风预警，注意防风远离广告牌 \uD83D\uDCA8";

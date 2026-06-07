@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -25,7 +26,7 @@ public class GreetingSettingsPage : SettingsPageBase
         {
             p.Children.Add(Row("启用问候语", "", Toggle(_svc.Settings.ShowGreeting, v => _svc.Settings.ShowGreeting = v)));
             p.Children.Add(Row("合并到节假日组件", "问候语显示在节假日下方", Toggle(_svc.Settings.MergeGreeting, v => _svc.Settings.MergeGreeting = v)));
-            p.Children.Add(Row("联网刷新问候语", "每5分钟从网络获取新文案", Toggle(_svc.Settings.GreetingOnline, v => _svc.Settings.GreetingOnline = v)));
+            p.Children.Add(Row("联网刷新问候语", "每天自动从网络获取新文案", Toggle(_svc.Settings.GreetingOnline, v => _svc.Settings.GreetingOnline = v)));
             p.Children.Add(Row("周日晚修提醒", "周日17-21点显示晚修提示", Toggle(_svc.Settings.ShowSundayEveningStudy, v => _svc.Settings.ShowSundayEveningStudy = v)));
         })));
         s.Children.Add(Expander("放学", new StackPanel { Spacing = 10 }.Also(p =>
@@ -62,6 +63,19 @@ public class GreetingSettingsPage : SettingsPageBase
                     if (TimeSpan.TryParse(v, out var ts)) { slot.EndHour = ts.Hours; slot.EndMinute = ts.Minutes; }
                 });
                 var textBox = Tx(slot.Text, 200, v => slot.Text = v);
+                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2), ToolTip.Tip = "刷新此问候语" };
+                refreshBtn.Click += async (a, e) =>
+                {
+                    refreshBtn.Content = "⏳";
+                    var newText = await FetchSingleGreetingAsync();
+                    if (!string.IsNullOrEmpty(newText))
+                    {
+                        slot.Text = newText;
+                        textBox.Text = newText;
+                        _svc.SaveSettings();
+                    }
+                    refreshBtn.Content = "🔄";
+                };
                 var delBtn = new Button { Content = "🗑️", Padding = new Thickness(4, 2) };
                 delBtn.Click += (a, e) => { _svc.Settings.TimeSlotGreetings.Remove(slot); RefreshList(); };
 
@@ -70,6 +84,7 @@ public class GreetingSettingsPage : SettingsPageBase
                 row.Children.Add(new TextBlock { Text = "到", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
                 row.Children.Add(endBox);
                 row.Children.Add(textBox);
+                row.Children.Add(refreshBtn);
                 row.Children.Add(delBtn);
                 listPanel.Children.Add(row);
             }
@@ -131,12 +146,26 @@ public class GreetingSettingsPage : SettingsPageBase
                     if (TimeSpan.TryParse(v, out var ts)) { item.EndHour = ts.Hours; item.EndMinute = ts.Minutes; }
                 });
                 var textBox = Tx(item.Text, 200, v => item.Text = v);
+                var refreshBtn = new Button { Content = "🔄", Padding = new Thickness(4, 2), ToolTip.Tip = "刷新此问候语" };
+                refreshBtn.Click += async (a, e) =>
+                {
+                    refreshBtn.Content = "⏳";
+                    var newText = await FetchSingleGreetingAsync();
+                    if (!string.IsNullOrEmpty(newText))
+                    {
+                        item.Text = newText;
+                        textBox.Text = newText;
+                        _svc.SaveSettings();
+                    }
+                    refreshBtn.Content = "🔄";
+                };
                 
                 timeRow.Children.Add(new TextBlock { Text = "从", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
                 timeRow.Children.Add(startBox);
                 timeRow.Children.Add(new TextBlock { Text = "到", VerticalAlignment = VerticalAlignment.Center, Opacity = 0.6, FontSize = 11 });
                 timeRow.Children.Add(endBox);
                 timeRow.Children.Add(textBox);
+                timeRow.Children.Add(refreshBtn);
                 row.Children.Add(timeRow);
                 
                 listPanel.Children.Add(row);
@@ -155,6 +184,21 @@ public class GreetingSettingsPage : SettingsPageBase
         panel.Children.Add(addBtn);
 
         return panel;
+    }
+
+    async Task<string> FetchSingleGreetingAsync()
+    {
+        try
+        {
+            using var c = new System.Net.Http.HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+            var r = await c.GetStringAsync("https://v1.hitokoto.cn/?c=k&encode=json");
+            using var doc = System.Text.Json.JsonDocument.Parse(r);
+            var root = doc.RootElement;
+            if (root.TryGetProperty("hitokoto", out var hp))
+                return hp.GetString() ?? "";
+        }
+        catch { }
+        return "";
     }
 
     static TextBlock Header(string t) => new() { Text = t, FontSize = 22, FontWeight = FontWeight.Bold, Margin = new Thickness(0, 0, 0, 8) };

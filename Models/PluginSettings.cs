@@ -6,7 +6,7 @@ namespace HolidayCountdown.Models;
 public class PluginSettings
 {
     // 全局
-    public int Version { get; set; } = 120;
+    public int Version { get; set; } = 122;
 
     // 节假日组件
     public int DisplayCount { get; set; } = 3;
@@ -26,6 +26,7 @@ public class PluginSettings
     // 问候语
     public bool ShowGreeting { get; set; } = true;
     public bool GreetingOnline { get; set; } = true;
+    public DateTime? LastGreetingRefreshDate { get; set; }
     public List<TimeSlotGreeting> TimeSlotGreetings { get; set; } = new();
     public List<SpecialDateGreeting> SpecialDateGreetings { get; set; } = new();
     public Dictionary<string, string> SpecialGreetings { get; set; } = new();

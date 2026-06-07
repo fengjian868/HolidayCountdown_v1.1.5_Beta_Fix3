@@ -19,7 +19,7 @@ public class AboutSettingsPage : SettingsPageBase
         s.Children.Add(Expander("插件信息", new StackPanel { Spacing = 10 }.Also(p =>
         {
             p.Children.Add(new TextBlock { Text = "节假日倒计时", FontSize = 28, FontWeight = FontWeight.Bold, Foreground = new SolidColorBrush(Color.Parse("#2196F3")) });
-            p.Children.Add(new TextBlock { Text = "版本: v1.2.0 (正式版)", FontSize = 14, Opacity = 0.7 });
+            p.Children.Add(new TextBlock { Text = "版本: v1.2.0.2 (正式版)", FontSize = 14, Opacity = 0.7 });
             p.Children.Add(new TextBlock { Text = "作者: fengjian868", FontSize = 14, Opacity = 0.7 });
             p.Children.Add(new TextBlock { Text = "GitHub: https://github.com/fengjian868/HolidayCountdown", FontSize = 12, Opacity = 0.5 });
         })));
